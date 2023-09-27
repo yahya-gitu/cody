@@ -94,6 +94,14 @@ query Repository($name: String!) {
 	}
 }`
 
+/*
+export const REPOSITORY_EMBEDDINGS_PROGRESS_QUERY = `
+query RepoEmbeddingJobs($name: String!) {
+    repoEmbeddingJobs(last: 1, query: $name) ... WIP
+}
+`
+*/
+
 export const GET_CODY_CONTEXT_QUERY = `
 query GetCodyContext($repos: [ID!]!, $query: String!, $codeResultsCount: Int!, $textResultsCount: Int!) {
 	getCodyContext(repos: $repos, query: $query, codeResultsCount: $codeResultsCount, textResultsCount: $textResultsCount) {

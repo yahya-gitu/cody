@@ -128,3 +128,20 @@ function expandHomeDir(path: string): string {
     }
     return path
 }
+
+/*
+curl -vv http://localhost:3080/.api/graphql -H 'Authorization: token sgp_XXX' --data-raw '{"query":"query {repoEmbeddingJobs(first: 1, query: \"host.example/my/repo\") {nodes {state stats {filesSkipped filesScheduled filesEmbedded}}}}"}'
+
+query {
+  repoEmbeddingJobs(first: 1, query: "host.example/my/repo") {
+    nodes {
+      state
+      stats {
+        filesSkipped
+        filesScheduled
+        filesEmbedded
+      }
+    }
+  }
+}
+*/

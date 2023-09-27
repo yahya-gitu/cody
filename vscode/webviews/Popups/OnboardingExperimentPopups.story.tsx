@@ -2,7 +2,7 @@ import { Meta, StoryObj } from '@storybook/react'
 
 import { VSCodeStoryDecorator } from '../storybook/VSCodeStoryDecorator'
 
-import { EmbeddingsNotFoundPopup, InstallCodyAppPopup } from './OnboardingExperimentPopups'
+import { EmbeddingsNotFoundPopup, EmbeddingsProgressPopup, InstallCodyAppPopup } from './OnboardingExperimentPopups'
 
 import styles from './Popup.module.css'
 
@@ -42,6 +42,17 @@ export const EmbeddingsNotFound: StoryObj<typeof EmbeddingsNotFoundPopup> = {
                     openApp={() => {}}
                     reloadStatus={() => {}}
                 />
+                <span className="codicon codicon-rocket" />
+            </button>
+        </div>
+    ),
+}
+
+export const EmbeddingsProgress: StoryObj<typeof EmbeddingsProgressPopup> = {
+    render: () => (
+        <div style={{ background: 'lightgrey', height: '60vh', display: 'flex', alignItems: 'end' }}>
+            <button className={styles.popupHost} style={{ width: '32px', height: '24px' }}>
+                <EmbeddingsProgressPopup isOpen={true} onDismiss={() => {}} filesComplete={7} filesScheduled={23} />
                 <span className="codicon codicon-rocket" />
             </button>
         </div>

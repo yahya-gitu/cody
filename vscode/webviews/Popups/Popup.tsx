@@ -12,9 +12,10 @@ interface PopupProps extends PopupOpenProps {
     className?: string
     title: React.ReactNode
     text: React.ReactNode
-    linkText: React.ReactNode
-    linkHref: string
+    linkText?: React.ReactNode
+    linkHref?: string
     linkTarget?: '_blank'
+    progress?: React.ReactNode
     actionButtons?: React.ReactNode
 }
 
@@ -27,6 +28,7 @@ export const Popup: React.FunctionComponent<React.PropsWithChildren<PopupProps>>
     linkText,
     linkHref,
     linkTarget,
+    progress,
     actionButtons,
     onDismiss,
     isOpen,
@@ -52,6 +54,7 @@ export const Popup: React.FunctionComponent<React.PropsWithChildren<PopupProps>>
                         </VSCodeButton>
                     </div>
                 </div>
+                {progress && <div className={classNames(styles.progressContainer)}>{progress}</div>}
                 {actionButtons && (
                     <div className={classNames(styles.actionButtonContainer, styles.row)}>{actionButtons}</div>
                 )}

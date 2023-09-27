@@ -88,3 +88,50 @@
 .popup:empty {
     display: none;
 }
+
+.popup .progress-container {
+    margin-top: 0.6rem;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 1rex;
+    background: transparent;
+}
+
+.popup .progress-container p {
+    background: transparent;
+    color: var(--vscode-sideBar-foreground);
+}
+
+progress.progress {
+    width: 100%;
+    appearance: none;
+    height: 3px;
+    background: linear-gradient(90deg, #444 0%, #5b5b5b 20%, #444 40%);
+    animation: background-scroll 1.5s linear infinite;
+    background-size: 200% 100%;
+    border-radius: 3px;
+}
+progress.progress::-webkit-progress-bar {
+    appearance: none;
+    background-color: transparent;
+    border-radius: 3px;
+}
+@keyframes background-scroll {
+    to {
+        background-position-x: -200%;
+    }
+}
+/* Indeterminate */
+progress.progress:not([value]) {
+    background: linear-gradient(90deg, #444 0%, #5b5b5b 20%, #444 40%);
+    animation: background-scroll 1.5s linear infinite;
+    background-size: 200% 100%;
+    border-radius: 3px;
+}
+/* Determinate */
+progress.progress[value]::-webkit-progress-value {
+    background: linear-gradient(90deg, #a112ff 0%, #ff5544 25%, #00cbec 50%, #ff5544 75%, #a112ff 100%);
+    background-size: 200% 100%;
+    border-radius: 3px;
+}

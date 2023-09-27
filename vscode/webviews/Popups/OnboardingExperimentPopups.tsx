@@ -4,6 +4,8 @@ import { VSCodeButton } from '@vscode/webview-ui-toolkit/react'
 
 import { Popup, PopupOpenProps } from './Popup'
 
+import styles from './Popup.module.css'
+
 export interface OnboardingPopupProps {
     installApp: () => void
     openApp: () => void
@@ -49,6 +51,35 @@ export const EmbeddingsNotFoundPopup: React.FunctionComponent<OnboardingPopupPro
             <>
                 <VSCodeButton onClick={openApp}>Open App</VSCodeButton>
                 <VSCodeButton onClick={reloadStatus}>Reload</VSCodeButton>
+            </>
+        }
+    />
+)
+
+export interface ProgressProps {
+    filesComplete: number
+    filesScheduled: number
+}
+
+export const EmbeddingsProgressPopup: React.FunctionComponent<ProgressProps & PopupOpenProps> = ({
+    filesComplete,
+    filesScheduled,
+    isOpen,
+    onDismiss,
+}) => (
+    <Popup
+        isOpen={isOpen}
+        onDismiss={onDismiss}
+        title="Indexing Repository"
+        text="You'll receive a notification when indexing is complete."
+        progress={
+            <>
+                <div className={styles.progressContainer}>
+                    <progress className={styles.progress} value={filesComplete} max={filesScheduled} />
+                    <p>
+                        {filesComplete}/{filesScheduled} files
+                    </p>
+                </div>
             </>
         }
     />
