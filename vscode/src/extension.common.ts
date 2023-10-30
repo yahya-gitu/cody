@@ -10,6 +10,7 @@ import { BfgRetriever } from './completions/context/retrievers/bfg/bfg-retriever
 import { onActivationDevelopmentHelpers } from './dev/helpers'
 import { ExtensionApi } from './extension-api'
 import type { FilenameContextFetcher } from './local-context/filename-context-fetcher'
+import type { createLocalEmbeddingsController } from './local-context/local-embeddings'
 import type { LocalKeywordContextFetcher } from './local-context/local-keyword-context-fetcher'
 import type { SymfRunner } from './local-context/symf'
 import { start } from './main'
@@ -24,6 +25,7 @@ type Constructor<T extends new (...args: any) => any> = T extends new (...args: 
 export interface PlatformContext {
     getRgPath?: typeof getRgPath
     createCommandsController?: Constructor<typeof CommandsController>
+    createLocalEmbeddingsController?: typeof createLocalEmbeddingsController
     createLocalKeywordContextFetcher?: Constructor<typeof LocalKeywordContextFetcher>
     createSymfRunner?: Constructor<typeof SymfRunner>
     createBfgRetriever?: () => BfgRetriever

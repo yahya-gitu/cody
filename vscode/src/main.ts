@@ -578,6 +578,9 @@ const register = async (
     // Clean up old onboarding experiment state
     void OnboardingExperiment.cleanUpCachedSelection()
 
+    const lec = await platform.createLocalEmbeddingsController?.(context)
+    await lec?.doStuff()
+
     return {
         disposable: vscode.Disposable.from(...disposables),
         onConfigurationChange: newConfig => {
