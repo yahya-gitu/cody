@@ -7,7 +7,8 @@
       "request": "launch",
       "runtimeExecutable": "${execPath}",
       "preLaunchTask": "Build VS Code Extension (Desktop)",
-      "args": ["--extensionDevelopmentPath=${workspaceRoot}/vscode"],
+      // DONOTCOMMIT revert this path
+      "args": ["--extensionDevelopmentPath=${workspaceRoot}/vscode", "~/projects/ocaml"],
       "sourceMaps": true,
       "outFiles": ["${workspaceRoot}/vscode/dist/**/*.js"],
       "env": {

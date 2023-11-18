@@ -88,7 +88,7 @@ export async function createClient({
         }
 
         const embeddingsSearch = repoId ? new SourcegraphEmbeddingsSearchClient(graphqlClient, repoId, true) : null
-        const codebaseContext = new CodebaseContext(config, config.codebase, embeddingsSearch, null, null, null)
+        const codebaseContext = new CodebaseContext(config, config.codebase, embeddingsSearch, null, null, null, null)
 
         const intentDetector = new SourcegraphIntentDetectorClient(graphqlClient, completionsClient)
 

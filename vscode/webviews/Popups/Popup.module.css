@@ -18,6 +18,11 @@
     width: calc(100vw - 1.5rem);
 }
 
+.popup-trail {
+    left: auto;
+    right: -3px;
+}
+
 .pointy-bit {
     position: absolute;
     left: calc(50% - 6px);
@@ -30,6 +35,7 @@
     background-color: var(--vscode-input-background);
     border-left: 1px solid var(--vscode-widget-border);
     border-bottom: 1px solid var(--vscode-widget-border);
+
     /* no box shadow on this, it relies on overlapping the rest of the popup */
 }
 
@@ -41,6 +47,14 @@
     display: flex;
     flex-direction: row;
     gap: 4px;
+}
+
+.row > .notice-close {
+    flex-grow: 0;
+}
+
+.row > :not(.notice-close) {
+    flex-grow: 1;
 }
 
 .action-button-container :nth-last-child(-n + 1) {
