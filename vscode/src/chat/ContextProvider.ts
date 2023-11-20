@@ -15,6 +15,7 @@ import { convertGitCloneURLToCodebaseName, isError } from '@sourcegraph/cody-sha
 import { getFullConfig } from '../configuration'
 import { VSCodeEditor } from '../editor/vscode-editor'
 import { PlatformContext } from '../extension.common'
+import { LocalEmbeddingsController } from '../local-context/local-embeddings'
 import { logDebug } from '../log'
 import { repositoryRemoteUrl } from '../repository/repositoryHelpers'
 import { AuthProvider } from '../services/AuthProvider'
@@ -63,6 +64,8 @@ export class ContextProvider implements vscode.Disposable {
 
     protected disposables: vscode.Disposable[] = []
 
+    private localEmbeddings: LocalEmbeddingsController | undefined = undefined
+
     constructor(
         public config: Omit<Config, 'codebase'>, // should use codebaseContext.getCodebase() rather than config.codebase
         private chat: ChatClient,
@@ -90,9 +93,21 @@ export class ContextProvider implements vscode.Disposable {
         return this.codebaseContext
     }
 
-    public async init(): Promise<void> {
+    // Initializes context provider state that must block extension activation.
+    public async eagerInit(): Promise<void> {
         await this.updateCodebaseContext()
         await this.publishContextStatus()
+    }
+
+    // Initializes context provider state that can happen after extension
+    // activation.
+    public async lazyInit(): Promise<void> {
+        // TODO(dpc): Consider delaying this so we do not interfere with startup
+        if (this.platform.createLocalEmbeddingsController) {
+            this.localEmbeddings = await this.platform.createLocalEmbeddingsController()
+            // TODO(dpc): Handle failure.
+            await this.updateCodebaseContext()
+        }
     }
 
     public onConfigurationChange(newConfig: Config): void {
@@ -128,7 +143,8 @@ export class ContextProvider implements vscode.Disposable {
             this.editor,
             this.chat,
             this.platform,
-            await this.getEmbeddingClientCandidates(this.config)
+            await this.getEmbeddingClientCandidates(this.config),
+            this.localEmbeddings
         )
         if (!codebaseContext) {
             return
@@ -159,7 +175,8 @@ export class ContextProvider implements vscode.Disposable {
                 this.editor,
                 this.chat,
                 this.platform,
-                await this.getEmbeddingClientCandidates(newConfig)
+                await this.getEmbeddingClientCandidates(newConfig),
+                this.localEmbeddings
             )
             if (codebaseContext) {
                 this.codebaseContext = codebaseContext
@@ -301,7 +318,8 @@ async function getCodebaseContext(
     editor: Editor,
     chatClient: ChatClient,
     platform: PlatformContext,
-    embeddingsClientCandidates: readonly SourcegraphGraphQLAPIClient[]
+    embeddingsClientCandidates: readonly SourcegraphGraphQLAPIClient[],
+    localEmbeddings: LocalEmbeddingsController | undefined
 ): Promise<CodebaseContext | null> {
     const workspaceRoot = editor.getWorkspaceRootUri()
     if (!workspaceRoot) {
@@ -314,8 +332,14 @@ async function getCodebaseContext(
         return null
     }
 
-    // Find an embeddings client
-    let embeddingsSearch = await EmbeddingsDetector.newEmbeddingsSearchClient(embeddingsClientCandidates, codebase)
+    let [embeddingsSearch, hasLocalEmbeddings, _] = await Promise.all([
+        // Find a embeddings clients
+        EmbeddingsDetector.newEmbeddingsSearchClient(embeddingsClientCandidates, codebase),
+        // See whether local embeddings has the codebase
+        // TODO(dpc): This could be racy
+        localEmbeddings?.load(codebase),
+        config.accessToken ? localEmbeddings?.setAccessToken(config.accessToken) : Promise.resolve(undefined),
+    ])
     if (isError(embeddingsSearch)) {
         logDebug(
             'ContextProvider:getCodebaseContext',
@@ -331,6 +355,7 @@ async function getCodebaseContext(
         rgPath ? platform.createLocalKeywordContextFetcher?.(rgPath, editor, chatClient) ?? null : null,
         rgPath ? platform.createFilenameContextFetcher?.(rgPath, editor, chatClient) ?? null : null,
         new GraphContextProvider(editor),
+        (hasLocalEmbeddings && localEmbeddings) || null,
         symf,
         undefined
     )

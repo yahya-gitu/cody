@@ -1,7 +1,11 @@
 import * as vscode from 'vscode'
 
+import { LocalEmbeddingsFetcher } from '@sourcegraph/cody-shared/src/local-context'
+import { EmbeddingsSearchResult } from '@sourcegraph/cody-shared/src/sourcegraph-api/graphql/client'
+
 import { spawnBfg } from '../graph/bfg/spawn-bfg'
 import { MessageHandler } from '../jsonrpc/jsonrpc'
+import { logDebug } from '../log'
 import { captureException } from '../services/sentry/sentry'
 
 export async function createLocalEmbeddingsController(
@@ -20,20 +24,38 @@ export async function createLocalEmbeddingsController(
     return new LocalEmbeddingsController(service)
 }
 
-export class LocalEmbeddingsController {
+export class LocalEmbeddingsController implements LocalEmbeddingsFetcher {
     constructor(private readonly service: MessageHandler) {}
 
-    // TODO: Remove this
-    public async hello(): Promise<void> {
-        // TODO: Handle BFG death and reconnection
-        void vscode.window.showInformationMessage(await this.service.request('e/echo', 'ping'))
+    private lastRepo: string | undefined
+    private lastAccessToken: string | undefined
+
+    public setAccessToken(token: string): Promise<void> {
+        if (token === this.lastAccessToken) {
+            return Promise.resolve()
+        }
+        this.lastAccessToken = token
+        return this.service.request('e/set-token', token)
     }
 
-    public async load(repo_name: string): Promise<boolean> {
-        return this.service.request('e/load', repo_name)
+    public load(repoName: string): Promise<boolean> {
+        if (repoName === this.lastRepo) {
+            // TODO(dpc): Cache the actual return value
+            return Promise.resolve(true)
+        }
+        this.lastRepo = repoName
+        return this.service.request('e/load', repoName)
     }
 
-    public async query(repo_name: string, query: string): Promise<string[]> {
+    public query(query: string): Promise<string> {
         return this.service.request('e/query', query)
+    }
+
+    // LocalEmbeddingsFetcher
+    // TODO: Handle invalid access tokens
+    public async getContext(query: string, _numResults: number): Promise<EmbeddingsSearchResult[]> {
+        const result = await this.query(query)
+        logDebug('LocalEmbeddingsController', result)
+        throw new Error('NYI LocalEmbeddingsController.getContext')
     }
 }

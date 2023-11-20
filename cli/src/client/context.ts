@@ -28,6 +28,7 @@ export async function createCodebaseContext(
         embeddingsSearch,
         new LocalKeywordContextFetcherMock(),
         null,
+        null,
         null
     )
 

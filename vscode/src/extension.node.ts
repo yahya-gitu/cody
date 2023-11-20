@@ -30,7 +30,7 @@ export function activate(context: vscode.ExtensionContext): ExtensionApi {
     return activateCommon(context, {
         getRgPath,
         createCommandsController: (...args) => new CommandsController(...args),
-        createLocalEmbeddingsController,
+        createLocalEmbeddingsController: () => createLocalEmbeddingsController(context),
         createLocalKeywordContextFetcher: (...args) => new LocalKeywordContextFetcher(...args),
         createFilenameContextFetcher: (...args) => new FilenameContextFetcher(...args),
         createCompletionsClient: (...args) => new SourcegraphNodeCompletionsClient(...args),
