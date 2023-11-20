@@ -1,21 +1,39 @@
 import * as vscode from 'vscode'
 
-import { loadBFG } from '../graph/bfg/BfgContextFetcher'
+import { spawnBfg } from '../graph/bfg/spawn-bfg'
 import { MessageHandler } from '../jsonrpc/jsonrpc'
+import { captureException } from '../services/sentry/sentry'
 
 export async function createLocalEmbeddingsController(
     context: vscode.ExtensionContext
 ): Promise<LocalEmbeddingsController> {
-    const bfg = await loadBFG(context)
-    return new LocalEmbeddingsController(bfg)
+    // TODO(dpc): De-dup this with BfgRetrieval doSpawnBFG.
+    const service = await new Promise<MessageHandler>((resolve, reject) => {
+        spawnBfg(context, reject).then(
+            bfg => resolve(bfg),
+            error => {
+                captureException(error)
+                reject(error)
+            }
+        )
+    })
+    return new LocalEmbeddingsController(service)
 }
 
 export class LocalEmbeddingsController {
-    constructor(private readonly bfg: MessageHandler) {}
+    constructor(private readonly service: MessageHandler) {}
 
-    public async doStuff(): Promise<void> {
-        // TODO: It is crap to have to pass explicit null when we don't want a parameter
+    // TODO: Remove this
+    public async hello(): Promise<void> {
         // TODO: Handle BFG death and reconnection
-        void vscode.window.showInformationMessage(await this.bfg.request('embeddings/hello', null))
+        void vscode.window.showInformationMessage(await this.service.request('e/echo', 'ping'))
+    }
+
+    public async load(repo_name: string): Promise<boolean> {
+        return this.service.request('e/load', repo_name)
+    }
+
+    public async query(repo_name: string, query: string): Promise<string[]> {
+        return this.service.request('e/query', query)
     }
 }
