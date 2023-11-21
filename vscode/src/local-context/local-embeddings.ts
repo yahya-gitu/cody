@@ -27,7 +27,7 @@ export async function createLocalEmbeddingsController(
 export class LocalEmbeddingsController implements LocalEmbeddingsFetcher {
     constructor(private readonly service: MessageHandler) {}
 
-    private lastRepo: string | undefined
+    private lastRepo: { name: string; loadResult: boolean } | undefined
     private lastAccessToken: string | undefined
 
     public setAccessToken(token: string): Promise<void> {
@@ -38,13 +38,15 @@ export class LocalEmbeddingsController implements LocalEmbeddingsFetcher {
         return this.service.request('e/set-token', token)
     }
 
-    public load(repoName: string): Promise<boolean> {
-        if (repoName === this.lastRepo) {
-            // TODO(dpc): Cache the actual return value
-            return Promise.resolve(true)
+    public async load(repoName: string): Promise<boolean> {
+        if (repoName === this.lastRepo?.name) {
+            return Promise.resolve(this.lastRepo.loadResult)
         }
-        this.lastRepo = repoName
-        return this.service.request('e/load', repoName)
+        this.lastRepo = {
+            name: repoName,
+            loadResult: await this.service.request('e/load', repoName),
+        }
+        return this.lastRepo.loadResult
     }
 
     public query(query: string): Promise<string> {
@@ -54,8 +56,12 @@ export class LocalEmbeddingsController implements LocalEmbeddingsFetcher {
     // LocalEmbeddingsFetcher
     // TODO: Handle invalid access tokens
     public async getContext(query: string, _numResults: number): Promise<EmbeddingsSearchResult[]> {
-        const result = await this.query(query)
-        logDebug('LocalEmbeddingsController', result)
+        try {
+            const result = await this.query(query)
+            logDebug('LocalEmbeddingsController', result)
+        } catch (error) {
+            logDebug('LocalEmbeddingsController', 'query failed', error)
+        }
         throw new Error('NYI LocalEmbeddingsController.getContext')
     }
 }
