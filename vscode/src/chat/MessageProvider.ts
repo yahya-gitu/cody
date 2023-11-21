@@ -136,12 +136,14 @@ export abstract class MessageProvider extends MessageHandler implements vscode.D
         this.loadChatHistory()
         this.sendTranscript()
         this.sendHistory()
-        await this.contextProvider.init()
+        await this.contextProvider.eagerInit()
         await this.sendCodyCommands()
 
         if (chatID) {
             await this.restoreSession(chatID)
         }
+
+        void this.contextProvider.lazyInit()
     }
 
     public async clearAndRestartSession(): Promise<void> {

@@ -76,7 +76,7 @@ describe('BfgRetriever', async () => {
                 accessToken: '',
                 serverEndpoint: '',
                 customHeaders: {},
-                customConfiguration: { 'cody.experimental.bfg.path': bfgBinary },
+                customConfiguration: { 'cody.experimental.cody-engine.path': bfgBinary },
             })
         }
         const extensionContext: Partial<vscode.ExtensionContext> = {

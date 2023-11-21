@@ -167,6 +167,7 @@ export function newRecipeContext(args?: Partial<RecipeContext>): RecipeContext {
                 defaultEmbeddingsClient,
                 defaultKeywordContextFetcher,
                 null,
+                null,
                 null
             ),
         responseMultiplexer: args.responseMultiplexer || new BotResponseMultiplexer(),

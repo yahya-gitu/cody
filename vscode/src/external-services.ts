@@ -73,6 +73,7 @@ export async function configureExternalServices(
         rgPath ? platform.createLocalKeywordContextFetcher?.(rgPath, editor, chatClient) ?? null : null,
         rgPath ? platform.createFilenameContextFetcher?.(rgPath, editor, chatClient) ?? null : null,
         null,
+        null,
         symf,
         undefined
     )
