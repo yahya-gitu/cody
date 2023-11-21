@@ -12,7 +12,6 @@ import { captureException } from '../services/sentry/sentry'
 export async function createLocalEmbeddingsController(
     context: vscode.ExtensionContext
 ): Promise<LocalEmbeddingsController> {
-    // TODO(dpc): De-dup this with BfgRetrieval doSpawnBFG.
     const service = await new Promise<MessageHandler>((resolve, reject) => {
         spawnBfg(context, reject).then(
             bfg => resolve(bfg),
@@ -58,14 +57,9 @@ export class LocalEmbeddingsController implements LocalEmbeddingsFetcher {
     }
 
     // LocalEmbeddingsFetcher
-    // TODO: Handle invalid access tokens
     public async getContext(query: string, _numResults: number): Promise<EmbeddingsSearchResult[]> {
         try {
-            const results = (await this.query(query)).results
-            for (const result of results) {
-                logDebug('LocalEmbeddingsController', `***${result.fileName}***\n${result.content}`)
-            }
-            return results
+            return (await this.query(query)).results
         } catch (error) {
             logDebug('LocalEmbeddingsController', 'query failed', error)
             throw error

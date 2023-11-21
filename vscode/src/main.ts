@@ -145,7 +145,7 @@ const register = async (
     )
     disposables.push(contextProvider)
     disposables.push(new LocalAppSetupPublisher(contextProvider))
-    await contextProvider.eagerInit()
+    await contextProvider.init()
 
     // Shared configuration that is required for chat views to send and receive messages
     const messageProviderOptions: MessageProviderOptions = {
@@ -574,8 +574,6 @@ const register = async (
     }
 
     await showSetupNotification(initialConfig)
-
-    void contextProvider.lazyInit()
 
     // Clean up old onboarding experiment state
     void OnboardingExperiment.cleanUpCachedSelection()

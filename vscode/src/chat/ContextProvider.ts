@@ -51,6 +51,17 @@ export enum ContextEvent {
     Auth = 'auth',
 }
 
+/*
+    public async lazyInit(): Promise<void> {
+        // TODO(dpc): Consider delaying this so we do not interfere with startup
+        if (this.platform.createLocalEmbeddingsController) {
+            this.localEmbeddings = await this.platform.createLocalEmbeddingsController()
+            // TODO(dpc): Handle failure.
+            await this.updateCodebaseContext()
+        }
+    }
+*/
+
 export class ContextProvider implements vscode.Disposable {
     // We fire messages from ContextProvider to the sidebar webview.
     // TODO(umpox): Should we add support for showing context in other places (i.e. within inline chat)?
@@ -93,21 +104,13 @@ export class ContextProvider implements vscode.Disposable {
         return this.codebaseContext
     }
 
-    // Initializes context provider state that must block extension activation.
-    public async eagerInit(): Promise<void> {
+    // Initializes context provider state. This blocks extension activation and
+    // chat startup. Despite being called 'init', this is called multiple times:
+    // - Once on extension activation.
+    // - With every MessageProvider, including ChatPanelProvider.
+    public async init(): Promise<void> {
         await this.updateCodebaseContext()
         await this.publishContextStatus()
-    }
-
-    // Initializes context provider state that can happen after extension
-    // activation.
-    public async lazyInit(): Promise<void> {
-        // TODO(dpc): Consider delaying this so we do not interfere with startup
-        if (this.platform.createLocalEmbeddingsController) {
-            this.localEmbeddings = await this.platform.createLocalEmbeddingsController()
-            // TODO(dpc): Handle failure.
-            await this.updateCodebaseContext()
-        }
     }
 
     public onConfigurationChange(newConfig: Config): void {
