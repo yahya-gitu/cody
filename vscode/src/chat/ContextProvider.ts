@@ -17,7 +17,7 @@ import { VSCodeEditor } from '../editor/vscode-editor'
 import { PlatformContext } from '../extension.common'
 import { LocalEmbeddingsController } from '../local-context/local-embeddings'
 import { logDebug } from '../log'
-import { repositoryRemoteUrl } from '../repository/repositoryHelpers'
+import { gitDirectoryUri, repositoryRemoteUrl } from '../repository/repositoryHelpers'
 import { AuthProvider } from '../services/AuthProvider'
 import { secretStorage } from '../services/SecretStorageProvider'
 import { telemetryService } from '../services/telemetry'
@@ -337,7 +337,7 @@ async function getCodebaseContext(
         EmbeddingsDetector.newEmbeddingsSearchClient(embeddingsClientCandidates, codebase),
         // See whether local embeddings has the codebase
         // TODO(dpc): This could be racy
-        localEmbeddings?.load(codebase),
+        localEmbeddings?.load(gitDirectoryUri(workspaceRoot)?.fsPath),
         config.accessToken ? localEmbeddings?.setAccessToken(config.accessToken) : Promise.resolve(undefined),
     ])
     if (isError(embeddingsSearch)) {
