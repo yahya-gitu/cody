@@ -61,7 +61,11 @@ export class LocalEmbeddingsController implements LocalEmbeddingsFetcher {
     // TODO: Handle invalid access tokens
     public async getContext(query: string, _numResults: number): Promise<EmbeddingsSearchResult[]> {
         try {
-            return (await this.query(query)).results
+            const results = (await this.query(query)).results
+            for (const result of results) {
+                logDebug('LocalEmbeddingsController', `***${result.fileName}***\n${result.content}`)
+            }
+            return results
         } catch (error) {
             logDebug('LocalEmbeddingsController', 'query failed', error)
             throw error
