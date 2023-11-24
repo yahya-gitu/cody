@@ -37,13 +37,36 @@ export async function createLocalEmbeddingsController(
 export class LocalEmbeddingsController implements LocalEmbeddingsFetcher {
     constructor(private readonly service: MessageHandler) {
         service.registerNotification('embeddings/progress', obj => {
-            logDebug('LocalEmbeddingsController', JSON.stringify(obj))
-            void vscode.window.showInformationMessage(JSON.stringify(obj))
+            // TODO: On done, open the repository.
+            if (!this.statusBar) {
+                return
+            }
+            if (typeof obj === 'object') {
+                if ('Progress' in obj) {
+                    const percent = Math.floor((100 * obj.Progress.numItems) / obj.Progress.totalItems)
+                    this.statusBar.text = `$(loading~spin) Cody Embeddings (${percent.toFixed(0)}%)`
+                    this.statusBar.backgroundColor = undefined
+                    this.statusBar.show()
+                } else if ('Error' in obj) {
+                    this.statusBar.text = '$(warning) Cody Embeddings'
+                    this.statusBar.backgroundColor = new vscode.ThemeColor('statusBarItem.warningBackground')
+                    this.statusBar.show()
+                }
+            } else if (obj === 'Done') {
+                this.statusBar.text = '$(sparkle) Cody Embeddings'
+                this.statusBar.backgroundColor = undefined
+                this.statusBar.show()
+            } else {
+                // TODO(dpc): Handle these notifications.
+                logDebug('LocalEmbeddingsController', JSON.stringify(obj))
+                void vscode.window.showInformationMessage(JSON.stringify(obj))
+            }
         })
     }
 
     private lastRepo: { path: string; loadResult: boolean } | undefined
     private lastAccessToken: string | undefined
+    private statusBar: vscode.StatusBarItem | undefined
 
     public setAccessToken(token: string): Promise<void> {
         if (token === this.lastAccessToken) {
@@ -62,6 +85,12 @@ export class LocalEmbeddingsController implements LocalEmbeddingsFetcher {
         logDebug('Indexing repository', repoPath)
         try {
             await this.service.request('embeddings/index', { path: repoPath, model: 'stub/stub', dimension: 1536 })
+            this.statusBar?.dispose()
+            this.statusBar = vscode.window.createStatusBarItem(
+                'cody-local-embeddings',
+                vscode.StatusBarAlignment.Right,
+                0
+            )
         } catch (error) {
             logDebug('LocalEmbeddingsController', captureException(error))
         }

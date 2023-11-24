@@ -32,7 +32,23 @@ export type Requests = {
     'embeddings/set-token': [string, undefined]
 }
 
+export type ProgressValue = Progress | ProgressError | 'Done'
+
+export interface Progress {
+    Progress: {
+        currentPath: string
+        repoName: string
+        repoPath: string
+        numItems: number
+        totalItems: number
+    }
+}
+
+export interface ProgressError {
+    Error: string
+}
+
 // eslint-disable-next-line @typescript-eslint/consistent-type-definitions
 export type Notifications = {
-    'embeddings/progress': [any]
+    'embeddings/progress': [ProgressValue]
 }
