@@ -84,7 +84,10 @@ export class LocalEmbeddingsController implements LocalEmbeddingsFetcher {
         const repoPath = this.lastRepo.path
         logDebug('Indexing repository', repoPath)
         try {
-            await this.service.request('embeddings/index', { path: repoPath, model: 'stub/stub', dimension: 1536 })
+            // TODO(dpc): Add a configuration parameter to override the embedding model.
+            // const model = 'stub/stub'
+            const model = 'openai/text-embedding-ada-002'
+            await this.service.request('embeddings/index', { path: repoPath, model, dimension: 1536 })
             this.statusBar?.dispose()
             this.statusBar = vscode.window.createStatusBarItem(
                 'cody-local-embeddings',
