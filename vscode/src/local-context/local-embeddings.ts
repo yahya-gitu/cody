@@ -9,19 +9,29 @@ import { MessageHandler } from '../jsonrpc/jsonrpc'
 import { logDebug } from '../log'
 import { captureException } from '../services/sentry/sentry'
 
+// TODO(dpc): Until PR1717 lands, use this global controller; after it lands,
+// split the controller up into a shared part and a per-client part.
+let globalLocalEmbeddingsController: Promise<LocalEmbeddingsController> | undefined
+
 export async function createLocalEmbeddingsController(
     context: vscode.ExtensionContext
 ): Promise<LocalEmbeddingsController> {
-    const service = await new Promise<MessageHandler>((resolve, reject) => {
-        spawnBfg(context, reject).then(
-            bfg => resolve(bfg),
-            error => {
-                captureException(error)
-                reject(error)
-            }
-        )
-    })
-    return new LocalEmbeddingsController(service)
+    if (globalLocalEmbeddingsController) {
+        return globalLocalEmbeddingsController
+    }
+    globalLocalEmbeddingsController = (async () => {
+        const service = await new Promise<MessageHandler>((resolve, reject) => {
+            spawnBfg(context, reject).then(
+                bfg => resolve(bfg),
+                error => {
+                    captureException(error)
+                    reject(error)
+                }
+            )
+        })
+        return new LocalEmbeddingsController(service)
+    })()
+    return globalLocalEmbeddingsController
 }
 
 export class LocalEmbeddingsController implements LocalEmbeddingsFetcher {
@@ -78,7 +88,9 @@ export class LocalEmbeddingsController implements LocalEmbeddingsFetcher {
     // LocalEmbeddingsFetcher
     public async getContext(query: string, _numResults: number): Promise<EmbeddingsSearchResult[]> {
         try {
-            return (await this.query(query)).results
+            const results = (await this.query(query)).results
+            logDebug('LocalEmbeddingsController', 'returning {results.len} results')
+            return results
         } catch (error) {
             logDebug('LocalEmbeddingsController', captureException(error))
             return []

@@ -98,13 +98,18 @@ export class ContextProvider implements vscode.Disposable {
     // - Once on extension activation.
     // - With every MessageProvider, including ChatPanelProvider.
     public async init(): Promise<void> {
+        await this.updateCodebaseContext()
+        await this.publishContextStatus()
+        void this.hackInitLocalEmbeddings()
+    }
+
+    private async hackInitLocalEmbeddings(): Promise<void> {
         // TODO(dpc): Consider delaying this so we do not interfere with startup
         if (this.platform.createLocalEmbeddingsController) {
             this.localEmbeddings = await this.platform.createLocalEmbeddingsController()
+            logDebug('LocalEmbeddingsController', 'init done')
             // TODO(dpc): Handle failure.
         }
-        await this.updateCodebaseContext()
-        await this.publishContextStatus()
     }
 
     public onConfigurationChange(newConfig: Config): void {
