@@ -25,7 +25,12 @@ export async function createLocalEmbeddingsController(
 }
 
 export class LocalEmbeddingsController implements LocalEmbeddingsFetcher {
-    constructor(private readonly service: MessageHandler) {}
+    constructor(private readonly service: MessageHandler) {
+        service.registerNotification('embeddings/progress', obj => {
+            logDebug('LocalEmbeddingsController', JSON.stringify(obj))
+            void vscode.window.showInformationMessage(JSON.stringify(obj))
+        })
+    }
 
     private lastRepo: { path: string; loadResult: boolean } | undefined
     private lastAccessToken: string | undefined
@@ -35,7 +40,21 @@ export class LocalEmbeddingsController implements LocalEmbeddingsFetcher {
             return Promise.resolve()
         }
         this.lastAccessToken = token
-        return this.service.request('e/set-token', token)
+        return this.service.request('embeddings/set-token', token)
+    }
+
+    public async index(): Promise<void> {
+        if (!this.lastRepo?.path || this.lastRepo?.loadResult) {
+            logDebug('LocalEmbeddingsController', 'No repository to index')
+            return
+        }
+        const repoPath = this.lastRepo.path
+        logDebug('Indexing repository', repoPath)
+        try {
+            await this.service.request('embeddings/index', { path: repoPath, model: 'stub/stub', dimension: 1536 })
+        } catch (error) {
+            logDebug('LocalEmbeddingsController', captureException(error))
+        }
     }
 
     public async load(repoPath: string | undefined): Promise<boolean> {
@@ -47,13 +66,13 @@ export class LocalEmbeddingsController implements LocalEmbeddingsFetcher {
         }
         this.lastRepo = {
             path: repoPath,
-            loadResult: await this.service.request('e/load', repoPath),
+            loadResult: await this.service.request('embeddings/load', repoPath),
         }
         return this.lastRepo.loadResult
     }
 
     public query(query: string): Promise<QueryResultSet> {
-        return this.service.request('e/query', query)
+        return this.service.request('embeddings/query', query)
     }
 
     // LocalEmbeddingsFetcher
@@ -61,8 +80,8 @@ export class LocalEmbeddingsController implements LocalEmbeddingsFetcher {
         try {
             return (await this.query(query)).results
         } catch (error) {
-            logDebug('LocalEmbeddingsController', 'query failed', error)
-            throw error
+            logDebug('LocalEmbeddingsController', captureException(error))
+            return []
         }
     }
 }

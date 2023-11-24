@@ -13,18 +13,26 @@ export interface QueryResult {
     content: string
 }
 
+export interface IndexRequest {
+    path: string
+    model: string
+    dimension: number
+}
+
 // eslint-disable-next-line @typescript-eslint/consistent-type-definitions
 export type Requests = {
-    'e/echo': [string, string]
+    'embeddings/echo': [string, string]
+    // Instruct local embeddings to index the specified repository path.
+    'embeddings/index': [IndexRequest, undefined]
     // Searches for and loads an index for the specified repository name.
-    'e/load': [string, boolean]
+    'embeddings/load': [string, boolean]
     // Queries loaded index.
-    'e/query': [string, QueryResultSet]
+    'embeddings/query': [string, QueryResultSet]
     // Sets the Sourcegraph access token.
-    'e/set-token': [string, undefined]
+    'embeddings/set-token': [string, undefined]
 }
 
 // eslint-disable-next-line @typescript-eslint/consistent-type-definitions
 export type Notifications = {
-    'e/placeholderNotification': [null]
+    'embeddings/progress': [any]
 }

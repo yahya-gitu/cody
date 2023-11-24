@@ -51,17 +51,6 @@ export enum ContextEvent {
     Auth = 'auth',
 }
 
-/*
-    public async lazyInit(): Promise<void> {
-        // TODO(dpc): Consider delaying this so we do not interfere with startup
-        if (this.platform.createLocalEmbeddingsController) {
-            this.localEmbeddings = await this.platform.createLocalEmbeddingsController()
-            // TODO(dpc): Handle failure.
-            await this.updateCodebaseContext()
-        }
-    }
-*/
-
 export class ContextProvider implements vscode.Disposable {
     // We fire messages from ContextProvider to the sidebar webview.
     // TODO(umpox): Should we add support for showing context in other places (i.e. within inline chat)?
@@ -109,6 +98,11 @@ export class ContextProvider implements vscode.Disposable {
     // - Once on extension activation.
     // - With every MessageProvider, including ChatPanelProvider.
     public async init(): Promise<void> {
+        // TODO(dpc): Consider delaying this so we do not interfere with startup
+        if (this.platform.createLocalEmbeddingsController) {
+            this.localEmbeddings = await this.platform.createLocalEmbeddingsController()
+            // TODO(dpc): Handle failure.
+        }
         await this.updateCodebaseContext()
         await this.publishContextStatus()
     }
@@ -304,6 +298,10 @@ export class ContextProvider implements vscode.Disposable {
             result.unshift(appClient)
         }
         return result
+    }
+
+    public indexRepository(): void {
+        void this.localEmbeddings?.index()
     }
 }
 

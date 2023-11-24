@@ -51,6 +51,7 @@ export type WebviewMessage =
           range?: { startLine: number; startCharacter: number; endLine: number; endCharacter: number }
       }
     | { command: 'edit'; text: string }
+    | { command: 'embeddings/index' }
     | { command: 'insert'; text: string; metadata?: CodeBlockMeta }
     | { command: 'newFile'; text: string; metadata?: CodeBlockMeta }
     | { command: 'copy'; eventType: 'Button' | 'Keydown'; text: string; metadata?: CodeBlockMeta }
