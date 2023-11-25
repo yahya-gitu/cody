@@ -49,7 +49,7 @@ interface GraphProvider {
     state: 'indeterminate' | 'indexing' | 'ready'
 }
 
-interface ContextGroup {
+export interface ContextGroup {
     name: string
     providers: ContextProvider[]
 }
