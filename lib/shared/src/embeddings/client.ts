@@ -6,6 +6,7 @@ import { EmbeddingsSearch } from '.'
 export class SourcegraphEmbeddingsSearchClient implements EmbeddingsSearch {
     constructor(
         private client: SourcegraphGraphQLAPIClient,
+        private repoName: string,
         private repoId: string,
         private web: boolean = false
     ) {}
@@ -34,14 +35,14 @@ export class SourcegraphEmbeddingsSearchClient implements EmbeddingsSearch {
     public get status(): status.ContextGroup[] {
         return [
             {
-                name: this.repoId,
+                name: this.repoName,
                 providers: [
                     {
                         kind: 'embeddings',
                         type: 'remote',
                         state: 'ready',
                         origin: this.endpoint,
-                        remoteName: this.repoId,
+                        remoteName: this.repoName,
                     },
                 ],
             },

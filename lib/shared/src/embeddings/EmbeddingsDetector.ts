@@ -49,6 +49,6 @@ export const EmbeddingsDetector = {
         if (repoId instanceof Error) {
             return repoId
         }
-        return repoId ? () => new SourcegraphEmbeddingsSearchClient(client, repoId) : undefined
+        return repoId ? () => new SourcegraphEmbeddingsSearchClient(client, codebase, repoId) : undefined
     },
 }
