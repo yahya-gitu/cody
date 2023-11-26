@@ -154,5 +154,4 @@ export class ContextStatusAggregator implements vscode.Disposable, ContextStatus
     // TODO: Hook in graph
     // TODO: Hook in the Cody: building code index ... notification pusher's
     // state
-    // TODO: Unit tests
 }

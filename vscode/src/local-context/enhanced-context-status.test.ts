@@ -9,23 +9,30 @@ import { ContextStatusAggregator, ContextStatusProvider } from './enhanced-conte
 class TestProvider implements ContextStatusProvider {
     public emitter: vscode.EventEmitter<ContextStatusProvider> = new vscode.EventEmitter()
 
+    constructor(private status_: view.ContextGroup[] | undefined = undefined) {}
+
     public onDidChangeStatus(callback: (provider: ContextStatusProvider) => void): vscode.Disposable {
         return this.emitter.event(callback)
     }
 
     public get status(): view.ContextGroup[] {
-        return [
-            {
-                name: 'github.com/foo/bar.git',
-                providers: [
-                    {
-                        kind: 'embeddings',
-                        type: 'local',
-                        state: 'unconsented',
-                    },
-                ],
-            },
-        ]
+        return (
+            this.status_ || [
+                {
+                    name: 'github.com/foo/bar',
+                    providers: [
+                        {
+                            kind: 'embeddings',
+                            type: 'local',
+                            state: 'unconsented',
+                        },
+                    ],
+                },
+            ]
+        )
+    }
+    public set status(status: view.ContextGroup[]) {
+        this.status_ = status
     }
 }
 
@@ -38,7 +45,7 @@ describe('ContextStatusAggregator', () => {
         aggregator.addProvider(new TestProvider())
         expect(await promise).toEqual([
             {
-                name: 'github.com/foo/bar.git',
+                name: 'github.com/foo/bar',
                 providers: [
                     {
                         kind: 'embeddings',
@@ -48,5 +55,92 @@ describe('ContextStatusAggregator', () => {
                 ],
             },
         ])
+        aggregator.dispose()
+    })
+    it('should fire aggregate status from multiple providers', async () => {
+        const aggregator = new ContextStatusAggregator()
+        let callbackCount = 0
+        const promise = new Promise(resolve => {
+            aggregator.onDidChangeStatus(provider => {
+                callbackCount++
+                resolve(provider.status)
+            })
+        })
+        aggregator.addProvider(new TestProvider())
+        aggregator.addProvider(
+            new TestProvider([
+                {
+                    name: 'host.example/foo',
+                    providers: [{ kind: 'graph', state: 'ready' }],
+                },
+                {
+                    name: 'github.com/foo/bar',
+                    providers: [
+                        {
+                            kind: 'embeddings',
+                            type: 'remote',
+                            state: 'ready',
+                            origin: 'sourcegraph.com',
+                            remoteName: 'github.com/foo/bar',
+                        },
+                    ],
+                },
+            ])
+        )
+        expect(await promise).toEqual([
+            {
+                name: 'github.com/foo/bar',
+                providers: [
+                    {
+                        kind: 'embeddings',
+                        type: 'local',
+                        state: 'unconsented',
+                    },
+                    {
+                        kind: 'embeddings',
+                        type: 'remote',
+                        state: 'ready',
+                        origin: 'sourcegraph.com',
+                        remoteName: 'github.com/foo/bar',
+                    },
+                ],
+            },
+            {
+                name: 'host.example/foo',
+                providers: [{ kind: 'graph', state: 'ready' }],
+            },
+        ])
+        // Not only does it aggregate status, it coalesces update events
+        expect(callbackCount).toBe(1)
+        aggregator.dispose()
+    })
+    it('should respond to child events by firing an event of its own', async () => {
+        const aggregator = new ContextStatusAggregator()
+        const provider = new TestProvider()
+        aggregator.addProvider(provider)
+        // Skip the first update event.
+        await Promise.resolve()
+        let callbackCount = 0
+        const promise = new Promise(resolve => {
+            aggregator.onDidChangeStatus(provider => {
+                callbackCount++
+                resolve(provider.status)
+            })
+        })
+        provider.status = [{ name: 'github.com/foo/bar', providers: [{ kind: 'graph', state: 'indexing' }] }]
+        provider.emitter.fire(provider)
+
+        expect(await promise).toEqual([
+            {
+                name: 'github.com/foo/bar',
+                providers: [
+                    {
+                        kind: 'graph',
+                        state: 'indexing',
+                    },
+                ],
+            },
+        ])
+        expect(callbackCount).toBe(1)
     })
 })
