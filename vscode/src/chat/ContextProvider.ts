@@ -15,6 +15,7 @@ import { convertGitCloneURLToCodebaseName, isError } from '@sourcegraph/cody-sha
 import { getFullConfig } from '../configuration'
 import { VSCodeEditor } from '../editor/vscode-editor'
 import { PlatformContext } from '../extension.common'
+import { ContextStatusAggregator } from '../local-context/enhanced-context-status'
 import { LocalEmbeddingsController } from '../local-context/local-embeddings'
 import { logDebug } from '../log'
 import { gitDirectoryUri, repositoryRemoteUrl } from '../repository/repositoryHelpers'
@@ -66,6 +67,8 @@ export class ContextProvider implements vscode.Disposable {
 
     private localEmbeddings: LocalEmbeddingsController | undefined = undefined
 
+    private statusAggregator: ContextStatusAggregator = new ContextStatusAggregator()
+
     constructor(
         public config: Omit<Config, 'codebase'>, // should use codebaseContext.getCodebase() rather than config.codebase
         private chat: ChatClient,
@@ -85,6 +88,15 @@ export class ContextProvider implements vscode.Disposable {
             }),
             vscode.workspace.onDidChangeWorkspaceFolders(async () => {
                 await this.updateCodebaseContext()
+            }),
+            this.statusAggregator,
+            this.statusAggregator.onDidChangeStatus(_ => {
+                void this.webview?.postMessage({
+                    type: 'enhanced-context',
+                    // TODO: Do not hard-code enabled: true here, but record
+                    // accurate status.
+                    context: { enabled: true, groups: this.statusAggregator.status },
+                })
             })
         )
     }
@@ -107,8 +119,9 @@ export class ContextProvider implements vscode.Disposable {
         // TODO(dpc): Consider delaying this so we do not interfere with startup
         if (this.platform.createLocalEmbeddingsController) {
             this.localEmbeddings = await this.platform.createLocalEmbeddingsController()
-            logDebug('LocalEmbeddingsController', 'init done')
             // TODO(dpc): Handle failure.
+            logDebug('LocalEmbeddingsController', 'init done')
+            this.statusAggregator.addProvider(this.localEmbeddings)
         }
     }
 
@@ -206,6 +219,7 @@ export class ContextProvider implements vscode.Disposable {
     private async publishContextStatus(): Promise<void> {
         const send = async (): Promise<void> => {
             const editorContext = this.editor.getActiveTextEditor()
+            // TODO(dpc): Remove this when enhanced context status encapsulates this information.
             await this.webview?.postMessage({
                 type: 'contextStatus',
                 contextStatus: {

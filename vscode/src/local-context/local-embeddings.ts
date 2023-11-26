@@ -3,11 +3,14 @@ import * as vscode from 'vscode'
 import { LocalEmbeddingsFetcher } from '@sourcegraph/cody-shared/src/local-context'
 import { EmbeddingsSearchResult } from '@sourcegraph/cody-shared/src/sourcegraph-api/graphql/client'
 
+import { ContextGroup } from '../../webviews/Components/EnhancedContextSettings'
 import { spawnBfg } from '../graph/bfg/spawn-bfg'
 import { QueryResultSet } from '../jsonrpc/embeddings-protocol'
 import { MessageHandler } from '../jsonrpc/jsonrpc'
 import { logDebug } from '../log'
 import { captureException } from '../services/sentry/sentry'
+
+import { ContextStatusProvider } from './enhanced-context-status'
 
 // TODO(dpc): Until PR1717 lands, use this global controller; after it lands,
 // split the controller up into a shared part and a per-client part.
@@ -34,14 +37,14 @@ export async function createLocalEmbeddingsController(
     return globalLocalEmbeddingsController
 }
 
-export class LocalEmbeddingsController implements LocalEmbeddingsFetcher {
+export class LocalEmbeddingsController implements LocalEmbeddingsFetcher, ContextStatusProvider {
     constructor(private readonly service: MessageHandler) {
         service.registerNotification('embeddings/progress', obj => {
-            // TODO: On done, open the repository.
             if (!this.statusBar) {
                 return
             }
             if (typeof obj === 'object') {
+                // TODO: Make clicks on this status bar item show detailed status, errors.
                 if ('Progress' in obj) {
                     const percent = Math.floor((100 * obj.Progress.numItems) / obj.Progress.totalItems)
                     this.statusBar.text = `$(loading~spin) Cody Embeddings (${percent.toFixed(0)}%)`
@@ -56,6 +59,13 @@ export class LocalEmbeddingsController implements LocalEmbeddingsFetcher {
                 this.statusBar.text = '$(sparkle) Cody Embeddings'
                 this.statusBar.backgroundColor = undefined
                 this.statusBar.show()
+                // TODO: Hide this notification after a while.
+
+                // TODO: There's a race here if there's an intervening load.
+                if (this.lastRepo) {
+                    this.lastRepo.loadResult = true
+                    this.statusEvent.fire(this)
+                }
             } else {
                 // TODO(dpc): Handle these notifications.
                 logDebug('LocalEmbeddingsController', JSON.stringify(obj))
@@ -63,6 +73,52 @@ export class LocalEmbeddingsController implements LocalEmbeddingsFetcher {
             }
         })
     }
+
+    // ContextStatusProvider implementation
+
+    private statusEvent: vscode.EventEmitter<ContextStatusProvider> = new vscode.EventEmitter()
+
+    public onDidChangeStatus(callback: (provider: ContextStatusProvider) => void): vscode.Disposable {
+        return this.statusEvent.event(callback)
+    }
+
+    public get status(): ContextGroup[] {
+        if (!this.lastRepo) {
+            // TODO: We could dig up the workspace folder here and use that.
+            return []
+        }
+        // TODO: Summarize the path with ~, etc.
+        const path = this.lastRepo.path
+        if (this.lastRepo.loadResult) {
+            return [
+                {
+                    name: path,
+                    providers: [
+                        {
+                            kind: 'embeddings',
+                            type: 'local',
+                            state: 'ready',
+                        },
+                    ],
+                },
+            ]
+        }
+        // TODO: Display indexing, if we are indexing
+        return [
+            {
+                name: path,
+                providers: [
+                    {
+                        kind: 'embeddings',
+                        type: 'local',
+                        state: 'unconsented',
+                    },
+                ],
+            },
+        ]
+    }
+
+    // Interactions with cody-engine
 
     private lastRepo: { path: string; loadResult: boolean } | undefined
     private lastAccessToken: string | undefined
@@ -110,6 +166,7 @@ export class LocalEmbeddingsController implements LocalEmbeddingsFetcher {
             path: repoPath,
             loadResult: await this.service.request('embeddings/load', repoPath),
         }
+        this.statusEvent.fire(this)
         return this.lastRepo.loadResult
     }
 
