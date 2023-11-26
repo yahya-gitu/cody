@@ -12,6 +12,11 @@ import { ChatModelSelection } from '@sourcegraph/cody-ui/src/Chat'
 import { AuthMethod, AuthStatus, LocalEnv } from '../src/chat/protocol'
 
 import { Chat } from './Chat'
+import {
+    EnhancedContextContext,
+    EnhancedContextContextT,
+    EnhancedContextEventHandlers,
+} from './Components/EnhancedContextSettings'
 import { LoadingPage } from './LoadingPage'
 import { View } from './NavBar'
 import { Notices } from './Notices'
@@ -47,6 +52,16 @@ export const App: React.FunctionComponent<{ vscodeAPI: VSCodeWrapper }> = ({ vsc
 
     const [chatModels, setChatModels] = useState<ChatModelSelection[]>()
 
+    const [enhancedContextState, setEnhancedContextState] = useState<EnhancedContextContextT>({
+        enabled: true,
+        groups: [],
+    })
+
+    const onConsentToEmbeddings = useCallback((): void => {
+        console.log('consent to embeddings')
+        vscodeAPI.postMessage({ command: 'embeddings/index' })
+    }, [vscodeAPI])
+
     useEffect(
         () =>
             vscodeAPI.onMessage(message => {
@@ -78,6 +93,9 @@ export const App: React.FunctionComponent<{ vscodeAPI: VSCodeWrapper }> = ({ vsc
                         break
                     case 'contextStatus':
                         setContextStatus(message.contextStatus)
+                        break
+                    case 'enhanced-context':
+                        setEnhancedContextState(message.context)
                         break
                     case 'userContextFiles':
                         setContextSelection(message.context)
@@ -213,35 +231,44 @@ export const App: React.FunctionComponent<{ vscodeAPI: VSCodeWrapper }> = ({ vsc
                         />
                     )}
                     {view === 'chat' && (
-                        <Chat
-                            messageInProgress={messageInProgress}
-                            messageBeingEdited={messageBeingEdited}
-                            setMessageBeingEdited={setMessageBeingEdited}
-                            transcript={transcript}
-                            contextStatus={contextStatus}
-                            contextSelection={contextSelection}
-                            formInput={formInput}
-                            setFormInput={setFormInput}
-                            inputHistory={inputHistory}
-                            setInputHistory={setInputHistory}
-                            vscodeAPI={vscodeAPI}
-                            suggestions={suggestions}
-                            setSuggestions={setSuggestions}
-                            telemetryService={telemetryService}
-                            chatCommands={myPrompts || undefined}
-                            isTranscriptError={isTranscriptError}
-                            applessOnboarding={{
-                                endpoint,
-                                embeddingsEndpoint: contextStatus?.embeddingsEndpoint,
-                                props: {
-                                    isAppInstalled,
-                                    onboardingPopupProps,
-                                },
+                        <EnhancedContextEventHandlers.Provider
+                            value={{
+                                onConsentToEmbeddings,
+                                onEnabledChange: (enabled): void => {},
                             }}
-                            chatModels={chatModels}
-                            enableNewChatUI={config.experimentalChatPanel || false}
-                            setChatModels={setChatModels}
-                        />
+                        >
+                            <EnhancedContextContext.Provider value={enhancedContextState}>
+                                <Chat
+                                    messageInProgress={messageInProgress}
+                                    messageBeingEdited={messageBeingEdited}
+                                    setMessageBeingEdited={setMessageBeingEdited}
+                                    transcript={transcript}
+                                    contextStatus={contextStatus}
+                                    contextSelection={contextSelection}
+                                    formInput={formInput}
+                                    setFormInput={setFormInput}
+                                    inputHistory={inputHistory}
+                                    setInputHistory={setInputHistory}
+                                    vscodeAPI={vscodeAPI}
+                                    suggestions={suggestions}
+                                    setSuggestions={setSuggestions}
+                                    telemetryService={telemetryService}
+                                    chatCommands={myPrompts || undefined}
+                                    isTranscriptError={isTranscriptError}
+                                    applessOnboarding={{
+                                        endpoint,
+                                        embeddingsEndpoint: contextStatus?.embeddingsEndpoint,
+                                        props: {
+                                            isAppInstalled,
+                                            onboardingPopupProps,
+                                        },
+                                    }}
+                                    chatModels={chatModels}
+                                    enableNewChatUI={config.experimentalChatPanel || false}
+                                    setChatModels={setChatModels}
+                                />
+                            </EnhancedContextContext.Provider>
+                        </EnhancedContextEventHandlers.Provider>
                     )}
                 </>
             )}
