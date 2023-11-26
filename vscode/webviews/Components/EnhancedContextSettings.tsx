@@ -3,61 +3,19 @@ import * as React from 'react'
 import { VSCodeButton, VSCodeCheckbox } from '@vscode/webview-ui-toolkit/react'
 import classNames from 'classnames'
 
+import {
+    ContextGroup,
+    ContextProvider,
+    EnhancedContextContextT,
+    LocalEmbeddingsProvider,
+} from '@sourcegraph/cody-shared/codebase-context/context-status'
+
 import { PopupFrame } from '../Popups/Popup'
 
 import popupStyles from '../Popups/Popup.module.css'
 import styles from './EnhancedContextSettings.module.css'
 
 interface EnhancedContextSettingsProps {}
-
-export type ContextProvider = EmbeddingsProvider | GraphProvider | SearchProvider
-
-type EmbeddingsProvider = IndeterminateEmbeddingsProvider | LocalEmbeddingsProvider | RemoteEmbeddingsProvider
-
-interface IndeterminateEmbeddingsProvider {
-    kind: 'embeddings'
-    type: 'indeterminate'
-    state: 'indeterminate'
-}
-
-interface RemoteEmbeddingsProvider {
-    kind: 'embeddings'
-    type: 'remote'
-    state: 'ready' | 'no-match'
-    // The host name of the provider. This is displayed to the user *and*
-    // used to construct a URL to the settings page.
-    origin: string
-    // The name of the repository in the remote provider. For example the
-    // context group may be "~/projects/frobbler" but the remote name is
-    // "host.example/universal/frobbler".
-    remoteName: string
-}
-
-interface LocalEmbeddingsProvider {
-    kind: 'embeddings'
-    type: 'local'
-    state: 'unconsented' | 'indexing' | 'ready'
-}
-
-interface SearchProvider {
-    kind: 'search'
-    state: 'indeterminate' | 'indexing' | 'ready'
-}
-
-interface GraphProvider {
-    kind: 'graph'
-    state: 'indeterminate' | 'indexing' | 'ready'
-}
-
-export interface ContextGroup {
-    name: string
-    providers: ContextProvider[]
-}
-
-export interface EnhancedContextContextT {
-    enabled: boolean
-    groups: ContextGroup[]
-}
 
 export function defaultEnhancedContextContext(): EnhancedContextContextT {
     return {
@@ -126,7 +84,9 @@ const EmbeddingsConsentComponent: React.FunctionComponent<{ provider: LocalEmbed
                 The repository&apos;s contents will be uploaded to OpenAI&apos;s Embeddings API and then stored locally.
                 To exclude files, set up a <a href="about:blank#TODO">Cody ignore file.</a>
             </p>
-            <p><VSCodeButton onClick={onClick}>Enable Embeddings</VSCodeButton></p>
+            <p>
+                <VSCodeButton onClick={onClick}>Enable Embeddings</VSCodeButton>
+            </p>
         </div>
     )
 }
@@ -177,11 +137,8 @@ const ContextProviderComponent: React.FunctionComponent<{ provider: ContextProvi
     return (
         <>
             <span className={styles.providerIconAndName}>
-                {stateIcon}
-                {' '}
-                <span className={styles.providerLabel}>{labelFor(provider.kind)}</span>
-            </span>
-            {' '}
+                {stateIcon} <span className={styles.providerLabel}>{labelFor(provider.kind)}</span>
+            </span>{' '}
             {contextProviderState(provider)}
         </>
     )
@@ -204,7 +161,11 @@ export const EnhancedContextSettings: React.FunctionComponent<EnhancedContextSet
             >
                 <div className={styles.enhancedContextInnerContainer}>
                     <div>
-                        <VSCodeCheckbox onChange={enabledChanged} checked={context.enabled} id="enhanced-context-checkbox" />
+                        <VSCodeCheckbox
+                            onChange={enabledChanged}
+                            checked={context.enabled}
+                            id="enhanced-context-checkbox"
+                        />
                     </div>
                     <div>
                         <label htmlFor="enhanced-context-checkbox">

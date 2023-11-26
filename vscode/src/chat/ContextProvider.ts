@@ -68,6 +68,8 @@ export class ContextProvider implements vscode.Disposable {
     private localEmbeddings: LocalEmbeddingsController | undefined = undefined
 
     private statusAggregator: ContextStatusAggregator = new ContextStatusAggregator()
+    // For aggregating status from the legacy CodebaseContext object, the registration of the old context object
+    private codebaseContextStatus: vscode.Disposable | undefined = undefined
 
     constructor(
         public config: Omit<Config, 'codebase'>, // should use codebaseContext.getCodebase() rather than config.codebase
@@ -170,6 +172,15 @@ export class ContextProvider implements vscode.Disposable {
         }
 
         this.codebaseContext = codebaseContext
+        if (this.codebaseContextStatus) {
+            this.codebaseContextStatus.dispose()
+            this.codebaseContextStatus = undefined
+        }
+        if (this.codebaseContext.embeddings) {
+            // TODO: Include remote embeddings as a context source
+            // TODO: Include symf as a context source
+            this.codebaseContextStatus = this.statusAggregator.addProvider(this.codebaseContext.embeddings)
+        }
         await this.publishContextStatus()
     }
 

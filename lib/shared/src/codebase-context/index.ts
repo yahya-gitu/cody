@@ -32,7 +32,7 @@ export class CodebaseContext {
     constructor(
         private config: Pick<Configuration, 'useContext' | 'serverEndpoint' | 'experimentalLocalSymbols'>,
         private readonly codebase: string | undefined,
-        private embeddings: EmbeddingsSearch | null,
+        public embeddings: EmbeddingsSearch | null,
         private keywords: KeywordContextFetcher | null,
         private filenames: FilenameContextFetcher | null,
         private graph: GraphContextFetcher | null,

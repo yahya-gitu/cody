@@ -1,12 +1,8 @@
 import * as vscode from 'vscode'
 
-import { ContextGroup } from '../../webviews/Components/EnhancedContextSettings'
-import { logDebug } from '../log'
+import { ContextGroup, ContextStatusProvider } from '@sourcegraph/cody-shared/codebase-context/context-status'
 
-export interface ContextStatusProvider {
-    onDidChangeStatus(callback: (provider: ContextStatusProvider) => void): vscode.Disposable
-    get status(): ContextGroup[]
-}
+import { logDebug } from '../log'
 
 // Collects context status from a set of ContextStatusProviders and produces
 // a merged status view.
