@@ -539,6 +539,70 @@ const register = async (
         })
     }
 
+    const item = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 100)
+    item.text = 'Repos'
+    item.command = 'cody.dev-repos'
+    // Q: Do we want the select all button?
+    // Q: Is there a limit and how do we impose it?
+    const repos: vscode.QuickPickItem[] = []
+    for (let pain_factor = 0; pain_factor < 625; pain_factor++) {
+        for (const word_a of ['apple', 'banana', 'orange', 'pumpkin', 'blueberry']) {
+            for (const word_b of ['purple', 'bluegreen', 'yellow', 'green', 'blue']) {
+                for (const word_c of ['dishwasher', 'monitor', 'computer', 'keyboard']) {
+                    for (const word_d of ['monkey', 'rhino', 'capybara', 'elephant']) {
+                        const item: vscode.QuickPickItem = {
+                            label: `github.com/${word_a}-${word_b}-${word_c}-${word_d}-${pain_factor}`,
+                        }
+                        item.buttons = [
+                            {
+                                iconPath: new vscode.ThemeIcon(Math.random() < 0.1 ? 'star-full' : 'star-empty'),
+                                tooltip: 'Add to favorites',
+                            },
+                        ]
+                        repos.push(item)
+                    }
+                }
+            }
+        }
+    }
+    console.log(`mocking ${repos.length} repos`)
+    const quickpick = vscode.window.createQuickPick()
+    quickpick.items = repos
+    quickpick.placeholder = 'Choose up to 9 repositories'
+    quickpick.canSelectMany = true
+    quickpick.onDidAccept(async items => {
+        console.log(items)
+    })
+    quickpick.onDidChangeValue(async value => {
+        console.log(
+            `quickpick has ${quickpick.activeItems.length} active items: ${JSON.stringify(quickpick.activeItems)}`
+        )
+        console.log(value)
+    })
+    quickpick.onDidChangeSelection(async items => {
+        console.log(
+            `quickpick has ${quickpick.activeItems.length} active items: ${JSON.stringify(quickpick.activeItems)}`
+        )
+        // TODO: Use "alwaysShow" for recents.
+        /*
+        for (const item of quickpick.items) {
+            item.alwaysShow = false
+        }
+        for (const item of items) {
+            item.alwaysShow = true
+            console.log('always showing', item.label)
+        }
+        */
+        console.log('done')
+    })
+    vscode.commands.registerCommand('cody.dev-repos', () => {
+        quickpick.items = repos
+        quickpick.busy = true
+        setTimeout(() => (quickpick.busy = false), 10_000)
+        quickpick.show()
+    })
+    item.show()
+
     return {
         disposable: vscode.Disposable.from(...disposables),
         onConfigurationChange,
