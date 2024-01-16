@@ -27,6 +27,7 @@ import {
     RECORD_TELEMETRY_EVENTS_MUTATION,
     REPOSITORY_EMBEDDING_EXISTS_QUERY,
     REPOSITORY_ID_QUERY,
+    REPOSITORY_LIST_QUERY,
     SEARCH_ATTRIBUTION_QUERY,
     SEARCH_EMBEDDINGS_QUERY,
 } from './queries'
@@ -88,6 +89,15 @@ interface CodyLLMSiteConfigurationResponse {
 
 interface CodyLLMSiteConfigurationProviderResponse {
     site: { codyLLMConfiguration: Pick<CodyLLMSiteConfiguration, 'provider'> | null } | null
+}
+
+interface RepoListResponse {
+    repositories: {
+        nodes: { name: string; id: string }[]
+        pageInfo: {
+            endCursor: string | null
+        }
+    }
 }
 
 interface RepositoryIdResponse {
@@ -352,6 +362,19 @@ export class SourcegraphGraphQLAPIClient {
         }
 
         return { ...config, provider }
+    }
+
+    /**
+     * Gets a subset of the list of repositories from the Sourcegraph instance.
+     * @param first the number of repositories to retrieve.
+     * @param after the last repository retrieved, if any, to continue enumerating the list.
+     * @returns the list of repositories. If `endCursor` is null, this is the end of the list.
+     */
+    public async getRepoList(first: number, after?: string): Promise<RepoListResponse | Error> {
+        return this.fetchSourcegraphAPI<APIResponse<RepoListResponse>>(REPOSITORY_LIST_QUERY, {
+            first,
+            after: after || null,
+        }).then(response => extractDataOrError(response, data => data))
     }
 
     public async getRepoId(repoName: string): Promise<string | null | Error> {
@@ -623,7 +646,12 @@ export class SourcegraphGraphQLAPIClient {
                 headers,
             })
                 .then(verifyResponseCode)
-                .then(response => response.json() as T)
+                .then(response => response.text())
+                .then(text => {
+                    console.log('fetched:', text)
+                    return JSON.parse(text) as T
+                })
+                //                .then(response => response.json() as T)
                 .catch(error => {
                     return new Error(`accessing Sourcegraph GraphQL API: ${error} (${url})`)
                 })

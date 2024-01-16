@@ -72,6 +72,21 @@ query CurrentSiteCodyLlmConfiguration {
     }
 }`
 
+export const REPOSITORY_LIST_QUERY = `
+query Repositories($first: Int!, $after: String) {
+    repositories(first: $first, after: $after) {
+        nodes {
+            id
+            name
+            url
+        }
+        pageInfo {
+            endCursor
+        }
+    }
+}
+`
+
 export const REPOSITORY_ID_QUERY = `
 query Repository($name: String!) {
 	repository(name: $name) {

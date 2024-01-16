@@ -196,6 +196,16 @@ const register = async (
     disposables.push(new EditManager({ chat: chatClient, editor, contextProvider }))
     disposables.push(new CodeActionProvider({ contextProvider }))
 
+    const item = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 100)
+    item.text = 'DEV Pick Repos'
+    item.command = 'cody.dev-repos'
+    const repoPicker = new RemoteRepoPicker(initialConfig)
+    vscode.commands.registerCommand('cody.dev-repos', async (): Promise<void> => {
+        const result = await repoPicker.show()
+        console.log(JSON.stringify(result))
+    })
+    item.show()
+
     let oldConfig = JSON.stringify(initialConfig)
     function onConfigurationChange(newConfig: ConfigurationWithAccessToken): void {
         if (oldConfig === JSON.stringify(newConfig)) {
@@ -213,6 +223,7 @@ const register = async (
         void localEmbeddings?.setAccessToken(newConfig.serverEndpoint, newConfig.accessToken)
         embeddingsClient.updateConfiguration(newConfig)
         setupAutocomplete()
+        repoPicker.updateConfiguration(newConfig)
     }
 
     // Register tree views
@@ -539,15 +550,6 @@ const register = async (
             },
         })
     }
-
-    const item = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 100)
-    item.text = 'DEV Pick Repos'
-    item.command = 'cody.dev-repos'
-    const repoPicker = new RemoteRepoPicker()
-    vscode.commands.registerCommand('cody.dev-repos', () => {
-        repoPicker.show()
-    })
-    item.show()
 
     return {
         disposable: vscode.Disposable.from(...disposables),
