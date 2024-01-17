@@ -19,8 +19,6 @@ enum RepoFetcherState {
 
 // RepoFetcher
 // - Fetches repositories from a Sourcegraph instance.
-// - TODO: Caches fetched repositories.
-// - TODO: Updates the cached repositories.
 // - Notifies a listener when the set of repositories has changed.
 class RepoFetcher implements vscode.Disposable {
     private state_: RepoFetcherState = RepoFetcherState.Paused
@@ -29,6 +27,8 @@ class RepoFetcher implements vscode.Disposable {
 
     private readonly repoListChangedEmitter = new vscode.EventEmitter<Repo[]>()
     public readonly onRepoListChanged = this.repoListChangedEmitter.event
+
+    private error_: Error | undefined
 
     // The cursor at the end of the last fetched repositories.
     private after: string | undefined
@@ -41,9 +41,12 @@ class RepoFetcher implements vscode.Disposable {
         this.stateChangedEmitter.dispose()
     }
 
+    public get lastError(): Error | undefined {
+        return this.error_
+    }
+
     public updateConfiguration(config: GraphQLAPIClientConfig): void {
         this.client = new SourcegraphGraphQLAPIClient(config)
-        // TODO: Load cached repos, if any, instead of fetching from scratch.
         this.repos = []
         this.after = undefined
         this.state = RepoFetcherState.Paused
@@ -77,7 +80,8 @@ class RepoFetcher implements vscode.Disposable {
     }
 
     private async fetch(): Promise<void> {
-        const numResultsPerQuery = 1000
+        // TODO: Increase this.
+        const numResultsPerQuery = 100
         const client = this.client
         if (this.state === RepoFetcherState.Paused) {
             return
@@ -90,6 +94,7 @@ class RepoFetcher implements vscode.Disposable {
             }
             if (result instanceof Error) {
                 this.state = RepoFetcherState.Errored
+                this.error_ = result
                 logDebug('RepoFetcher', result.toString())
                 return
             }
@@ -97,6 +102,9 @@ class RepoFetcher implements vscode.Disposable {
             this.repos.push(...newRepos)
             this.repoListChangedEmitter.fire(this.repos)
             this.after = result.repositories.pageInfo.endCursor || undefined
+
+            // DONOTCOMMIT remove this artificial delay
+            await new Promise(resolve => setTimeout(resolve, 3000))
         } while (this.state === RepoFetcherState.Fetching && this.after)
 
         if (!this.after) {
@@ -105,25 +113,14 @@ class RepoFetcher implements vscode.Disposable {
     }
 }
 
-// TODO:
-// - Cache fetched repositories in the profile.
-// - Display recently used repositories first.
-// - Refresh cached repositories.
-// - Clear cached repositories on logout.
-
-// Repo cache:
-// - Endpoint and user
-// - Repositories
-// - Last fetched item cursor
-
 /**
  * A quickpick for choosing a set of repositories from a Sourcegraph instance.
  */
 export class RemoteRepoPicker implements vscode.Disposable {
+    public readonly maxSelectedRepoCount: number = 9
     private disposables: vscode.Disposable[] = []
     private readonly quickpick: vscode.QuickPick<vscode.QuickPickItem & Repo>
     private readonly fetcher: RepoFetcher
-    private selected: Set<string> = new Set()
 
     constructor(config: GraphQLAPIClientConfig) {
         this.fetcher = new RepoFetcher(new SourcegraphGraphQLAPIClient(config))
@@ -131,20 +128,27 @@ export class RemoteRepoPicker implements vscode.Disposable {
         this.fetcher.onStateChanged(
             state => {
                 this.quickpick.busy = state === RepoFetcherState.Fetching
-                // TODO: Show error messages.
+                if (state === RepoFetcherState.Errored) {
+                    void vscode.window.showErrorMessage(
+                        `Failed to fetch repository list: ${this.fetcher.lastError?.message}`
+                    )
+                }
             },
             undefined,
             this.disposables
         )
 
         this.quickpick = vscode.window.createQuickPick<vscode.QuickPickItem & Repo>()
-        this.quickpick.placeholder = 'Choose up to 9 repositories'
+        this.quickpick.placeholder = `Choose up to ${this.maxSelectedRepoCount} repositories`
         this.quickpick.canSelectMany = true
 
         this.quickpick.onDidChangeSelection(
             selection => {
-                this.selected = new Set(selection.map(item => item.id))
-                console.log('selected', this.selected.values.length)
+                if (selection.length > this.maxSelectedRepoCount) {
+                    void vscode.window.showWarningMessage(
+                        `You can only select up to ${this.maxSelectedRepoCount} repositories.`
+                    )
+                }
             },
             undefined,
             this.disposables
@@ -164,17 +168,17 @@ export class RemoteRepoPicker implements vscode.Disposable {
     }
 
     /**
-     * Shows the remote repo picker.
+     * Shows the remote repo picker. Resolves with `undefined` if the user
+     * dismissed the dialog with ESC, a click away, etc.
      */
-    public show(): Promise<readonly Repo[]> {
+    public show(): Promise<readonly Repo[] | undefined> {
         logDebug('RepoPicker', 'showing; fetcher state =', this.fetcher.state)
-        let onDone = { resolve: (_: readonly Repo[]) => {}, reject: (error: Error) => {} }
-        const promise = new Promise<readonly Repo[]>((resolve, reject) => {
+        let onDone = { resolve: (_: readonly Repo[] | undefined) => {}, reject: (error: Error) => {} }
+        const promise = new Promise<readonly Repo[] | undefined>((resolve, reject) => {
             onDone = { resolve, reject }
         })
 
         this.quickpick.selectedItems = []
-        this.selected = new Set()
         this.handleRepoListChanged()
 
         // Refresh the repo list.
@@ -189,12 +193,21 @@ export class RemoteRepoPicker implements vscode.Disposable {
                 logDebug('RepoPicker', 'pausing repo list fetching on hide')
                 this.fetcher.pause()
             }
+            onDone.resolve(undefined)
         })
-        void promise.then(() => didHide.dispose())
+        void promise.finally(() => didHide.dispose())
 
-        this.quickpick.onDidAccept(() => {
+        const didAccept = this.quickpick.onDidAccept(() => {
+            if (this.quickpick.selectedItems.length > this.maxSelectedRepoCount) {
+                void vscode.window.showWarningMessage(
+                    `You can only select up to ${this.maxSelectedRepoCount} repositories.`
+                )
+                return
+            }
             onDone.resolve(this.quickpick.selectedItems.map(item => ({ name: item.name, id: item.id })))
+            this.quickpick.hide()
         })
+        void promise.finally(() => didAccept.dispose())
 
         // Show the quickpick
         this.quickpick.show()
@@ -203,13 +216,19 @@ export class RemoteRepoPicker implements vscode.Disposable {
     }
 
     private handleRepoListChanged(): void {
+        const selected = new Set<string>(this.quickpick.selectedItems.map(item => item.id))
+        const selectedItems: (vscode.QuickPickItem & Repo)[] = []
         this.quickpick.items = this.fetcher.repositories.map(repo => {
-            return {
+            const item = {
                 label: repo.name,
                 name: repo.name,
                 id: repo.id,
-                selected: this.selected.has(repo.id),
             }
+            if (selected.has(repo.id)) {
+                selectedItems.push(item)
+            }
+            return item
         })
+        this.quickpick.selectedItems = selectedItems
     }
 }
