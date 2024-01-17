@@ -77,7 +77,7 @@ class RepoFetcher implements vscode.Disposable {
     }
 
     private async fetch(): Promise<void> {
-        const numResultsPerQuery = 10_000
+        const numResultsPerQuery = 1000
         const client = this.client
         if (this.state === RepoFetcherState.Paused) {
             return
@@ -99,7 +99,9 @@ class RepoFetcher implements vscode.Disposable {
             this.after = result.repositories.pageInfo.endCursor || undefined
         } while (this.state === RepoFetcherState.Fetching && this.after)
 
-        this.state = RepoFetcherState.Complete
+        if (!this.after) {
+            this.state = RepoFetcherState.Complete
+        }
     }
 }
 
@@ -142,6 +144,7 @@ export class RemoteRepoPicker implements vscode.Disposable {
         this.quickpick.onDidChangeSelection(
             selection => {
                 this.selected = new Set(selection.map(item => item.id))
+                console.log('selected', this.selected.values.length)
             },
             undefined,
             this.disposables
@@ -164,6 +167,7 @@ export class RemoteRepoPicker implements vscode.Disposable {
      * Shows the remote repo picker.
      */
     public show(): Promise<readonly Repo[]> {
+        logDebug('RepoPicker', 'showing; fetcher state =', this.fetcher.state)
         let onDone = { resolve: (_: readonly Repo[]) => {}, reject: (error: Error) => {} }
         const promise = new Promise<readonly Repo[]>((resolve, reject) => {
             onDone = { resolve, reject }
@@ -175,12 +179,14 @@ export class RemoteRepoPicker implements vscode.Disposable {
 
         // Refresh the repo list.
         if (this.fetcher.state !== RepoFetcherState.Complete) {
+            logDebug('RepoPicker', 'continuing to fetch repositories list')
             this.fetcher.resume()
         }
 
         // Stop fetching repositories when the quickpick is dismissed.
         const didHide = this.quickpick.onDidHide(() => {
             if (this.fetcher.state !== RepoFetcherState.Complete) {
+                logDebug('RepoPicker', 'pausing repo list fetching on hide')
                 this.fetcher.pause()
             }
         })

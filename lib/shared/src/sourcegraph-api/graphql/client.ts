@@ -646,12 +646,12 @@ export class SourcegraphGraphQLAPIClient {
                 headers,
             })
                 .then(verifyResponseCode)
-                .then(response => response.text())
-                .then(text => {
-                    console.log('fetched:', text)
-                    return JSON.parse(text) as T
-                })
-                //                .then(response => response.json() as T)
+                // .then(response => response.text())
+                // .then(text => {
+                //    console.log('fetched:', text)
+                //    return JSON.parse(text) as T
+                // })
+                .then(response => response.json() as T)
                 .catch(error => {
                     return new Error(`accessing Sourcegraph GraphQL API: ${error} (${url})`)
                 })
