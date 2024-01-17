@@ -22,7 +22,6 @@ class TestProvider implements status.ContextStatusProvider {
                     providers: [
                         {
                             kind: 'embeddings',
-                            type: 'local',
                             state: 'unconsented',
                         },
                     ],
@@ -48,7 +47,6 @@ describe('ContextStatusAggregator', () => {
                 providers: [
                     {
                         kind: 'embeddings',
-                        type: 'local',
                         state: 'unconsented',
                     },
                 ],
@@ -70,17 +68,17 @@ describe('ContextStatusAggregator', () => {
             new TestProvider([
                 {
                     name: 'host.example/foo',
-                    providers: [{ kind: 'graph', state: 'ready' }],
+                    providers: [{ kind: 'search', type: 'local', state: 'ready' }],
                 },
                 {
                     name: 'github.com/foo/bar',
                     providers: [
                         {
-                            kind: 'embeddings',
+                            kind: 'search',
                             type: 'remote',
                             state: 'ready',
-                            origin: 'sourcegraph.com',
-                            remoteName: 'github.com/foo/bar',
+                            id: 'quux',
+                            inclusion: 'manual',
                         },
                     ],
                 },
@@ -92,21 +90,20 @@ describe('ContextStatusAggregator', () => {
                 providers: [
                     {
                         kind: 'embeddings',
-                        type: 'local',
                         state: 'unconsented',
                     },
                     {
-                        kind: 'embeddings',
+                        kind: 'search',
                         type: 'remote',
                         state: 'ready',
-                        origin: 'sourcegraph.com',
-                        remoteName: 'github.com/foo/bar',
+                        id: 'quux',
+                        inclusion: 'manual',
                     },
                 ],
             },
             {
                 name: 'host.example/foo',
-                providers: [{ kind: 'graph', state: 'ready' }],
+                providers: [{ kind: 'search', type: 'local', state: 'ready' }],
             },
         ])
         // Not only does it aggregate status, it coalesces update events
@@ -126,7 +123,9 @@ describe('ContextStatusAggregator', () => {
                 resolve(provider.status)
             })
         })
-        provider.status = [{ name: 'github.com/foo/bar', providers: [{ kind: 'graph', state: 'indexing' }] }]
+        provider.status = [
+            { name: 'github.com/foo/bar', providers: [{ kind: 'search', type: 'local', state: 'indexing' }] },
+        ]
         provider.emitter.fire(provider)
 
         expect(await promise).toEqual([
@@ -134,7 +133,8 @@ describe('ContextStatusAggregator', () => {
                 name: 'github.com/foo/bar',
                 providers: [
                     {
-                        kind: 'graph',
+                        kind: 'search',
+                        type: 'local',
                         state: 'indexing',
                     },
                 ],

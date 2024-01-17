@@ -7,7 +7,6 @@ import { newPromptMixin, PromptMixin } from '@sourcegraph/cody-shared/src/prompt
 import { isDotCom } from '@sourcegraph/cody-shared/src/sourcegraph-api/environments'
 import { graphqlClient } from '@sourcegraph/cody-shared/src/sourcegraph-api/graphql'
 
-import { CachedRemoteEmbeddingsClient } from './chat/CachedRemoteEmbeddingsClient'
 import { ChatManager, CodyChatPanelViewType } from './chat/chat-view/ChatManager'
 import { type ChatSession } from './chat/chat-view/SimpleChatPanelProvider'
 import { ContextProvider } from './chat/ContextProvider'
@@ -181,14 +180,12 @@ const register = async (
     // Evaluate a mock feature flag for the purpose of an A/A test. No functionality is affected by this flag.
     await featureFlagProvider.evaluateFeatureFlag(FeatureFlag.CodyChatMockTest)
 
-    const embeddingsClient = new CachedRemoteEmbeddingsClient(initialConfig)
     const chatManager = new ChatManager(
         {
             ...messageProviderOptions,
             extensionUri: context.extensionUri,
         },
         chatClient,
-        embeddingsClient,
         localEmbeddings || null,
         symfRunner || null
     )
@@ -221,7 +218,6 @@ const register = async (
         platform.onConfigurationChange?.(newConfig)
         symfRunner?.setSourcegraphAuth(newConfig.serverEndpoint, newConfig.accessToken)
         void localEmbeddings?.setAccessToken(newConfig.serverEndpoint, newConfig.accessToken)
-        embeddingsClient.updateConfiguration(newConfig)
         setupAutocomplete()
         repoPicker.updateConfiguration(newConfig)
     }
@@ -403,7 +399,7 @@ const register = async (
         vscode.window.registerUriHandler({
             handleUri: async (uri: vscode.Uri) => {
                 if (uri.path === '/app-done') {
-                    await chatManager.simplifiedOnboardingReloadEmbeddingsState()
+                    // This is an old re-entrypoint from App that is a no-op now.
                 } else {
                     await authProvider.tokenCallbackHandler(uri, config.customHeaders)
                 }

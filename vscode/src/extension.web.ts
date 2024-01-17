@@ -1,7 +1,6 @@
 import type * as vscode from 'vscode'
 
 import { ChatQuestion } from '@sourcegraph/cody-shared/src/chat/recipes/chat-question'
-import { ContextSearch } from '@sourcegraph/cody-shared/src/chat/recipes/context-search'
 import { ExplainCodeDetailed } from '@sourcegraph/cody-shared/src/chat/recipes/explain-code-detailed'
 import { ExplainCodeHighLevel } from '@sourcegraph/cody-shared/src/chat/recipes/explain-code-high-level'
 import { FindCodeSmells } from '@sourcegraph/cody-shared/src/chat/recipes/find-code-smells'
@@ -31,7 +30,6 @@ export const VSCODE_WEB_RECIPES: Recipe[] = [
     new ImproveVariableNames(),
     new NextQuestions(),
     new TranslateToLanguage(),
-    new ContextSearch(),
 ]
 
 /**

@@ -8,6 +8,7 @@ import {
     type ContextProvider,
     type EnhancedContextContextT,
     type LocalEmbeddingsProvider,
+    type RemoteSearchProvider,
     type SearchProvider,
 } from '@sourcegraph/cody-shared/src/codebase-context/context-status'
 
@@ -17,7 +18,15 @@ import { getVSCodeAPI } from '../utils/VSCodeApi'
 import popupStyles from '../Popups/Popup.module.css'
 import styles from './EnhancedContextSettings.module.css'
 
+export enum EnhancedContextPresentationMode {
+    // An expansive display with heterogenous providers grouped by source.
+    Consumer = 'consumer',
+    // A compact display with remote search providers over a list of sources.
+    Enterprise = 'enterprise',
+}
+
 interface EnhancedContextSettingsProps {
+    presentationMode: 'consumer' | 'enterprise'
     isOpen: boolean
     setOpen: (open: boolean) => void
 }
@@ -57,6 +66,64 @@ export function useEnhancedContextEnabled(): boolean {
 function useEnhancedContextEventHandlers(): EnhancedContextEventHandlersT {
     return React.useContext(EnhancedContextEventHandlers)
 }
+
+const CompactGroupsComponent: React.FunctionComponent<{ groups: readonly ContextGroup[] }> = ({
+    groups,
+}): React.ReactNode => {
+    // The compact groups component is only used for enterprise context, which
+    // uses homogeneous remote search providers. Lift the providers out of the
+    // groups.
+    const liftedProviders: [string, RemoteSearchProvider][] = []
+    for (const group of groups) {
+        const providers = group.providers.filter(
+            (provider: ContextProvider): provider is RemoteSearchProvider =>
+                provider.kind === 'search' && provider.type === 'remote'
+        )
+        console.assert(
+            providers.length !== group.providers.length,
+            'enterprise context should only use remote search providers'
+        )
+        if (providers.length) {
+            liftedProviders.push([group.name, providers[0]])
+        }
+    }
+
+    // Sort the providers so automatically included ones appear first, then sort
+    // by name.
+    liftedProviders.sort((a, b) => {
+        if (a[1].inclusion === 'auto' && b[1].inclusion !== 'auto') {
+            return -1
+        }
+        if (b[1].inclusion === 'auto') {
+            return 1
+        }
+        return a[0].localeCompare(b[0])
+    })
+
+    return (
+        <>
+            <dt title="Repositories" className={styles.lineBreakAll}>
+                <i className="codicon codicon-repo-forked" /> Repositories
+            </dt>
+            <dd>
+                <ol className={styles.providersList}>
+                    {liftedProviders.map(([group, provider]) => (
+                        <CompactProviderComponent key={provider.id} name={group} inclusion={provider.inclusion} />
+                    ))}
+                </ol>
+            </dd>
+        </>
+    )
+}
+
+const CompactProviderComponent: React.FunctionComponent<{ name: string; inclusion: 'auto' | 'manual' }> = ({
+    name,
+    inclusion,
+}): React.ReactNode => (
+    <li>
+        {name} {inclusion === 'auto' ? '(i)' : 'X'}
+    </li>
+)
 
 const ContextGroupComponent: React.FunctionComponent<{ group: ContextGroup; allGroups: ContextGroup[] }> = ({
     group,
@@ -150,13 +217,6 @@ function contextProviderState(provider: ContextProvider): React.ReactNode {
         case 'indeterminate':
             return <></>
         case 'ready':
-            if (provider.kind === 'embeddings' && provider.type === 'remote') {
-                return (
-                    <p className={classNames(styles.providerExplanatoryText, styles.lineBreakAll)}>
-                        Inherited {provider.remoteName}
-                    </p>
-                )
-            }
             return <span className={styles.providerInlineState}>&mdash; Indexed</span>
         case 'indexing':
             return <span className={styles.providerInlineState}>&mdash; Indexing&hellip;</span>
@@ -164,13 +224,6 @@ function contextProviderState(provider: ContextProvider): React.ReactNode {
             return <EmbeddingsConsentComponent provider={provider} />
         case 'no-match':
             if (provider.kind === 'embeddings') {
-                if (provider.type === 'remote') {
-                    return (
-                        <p className={styles.providerExplanatoryText}>
-                            No repository matching {provider.remoteName} on {provider.origin}
-                        </p>
-                    )
-                }
                 // Error messages for local embeddings missing.
                 switch (provider.errorReason) {
                     case 'not-a-git-repo':
@@ -233,6 +286,7 @@ const ContextProviderComponent: React.FunctionComponent<{ provider: ContextProvi
 }
 
 export const EnhancedContextSettings: React.FunctionComponent<EnhancedContextSettingsProps> = ({
+    presentationMode,
     isOpen,
     setOpen,
 }): React.ReactNode => {
@@ -298,15 +352,33 @@ export const EnhancedContextSettings: React.FunctionComponent<EnhancedContextSet
                         <label htmlFor="enhanced-context-checkbox">
                             <h1>Enhanced Context ✨</h1>
                         </label>
-                        <p>
-                            Include additional code context with your message.{' '}
-                            {/* <a href="about:blank#TODO">Learn more</a> */}
-                        </p>
-                        <dl className={styles.foldersList}>
-                            {context.groups.map(group => (
-                                <ContextGroupComponent key={group.name} group={group} allGroups={context.groups} />
-                            ))}
-                        </dl>
+                        {presentationMode === EnhancedContextPresentationMode.Consumer ? (
+                            <>
+                                <p>
+                                    Include additional code context with your message.{' '}
+                                    {/* <a href="about:blank#TODO">Learn more</a> */}
+                                </p>
+                                <dl className={styles.foldersList}>
+                                    {context.groups.map(group => (
+                                        <ContextGroupComponent
+                                            key={group.name}
+                                            group={group}
+                                            allGroups={context.groups}
+                                        />
+                                    ))}
+                                </dl>
+                            </>
+                        ) : (
+                            <>
+                                <p>
+                                    Automatically include additional context from your codebase.{' '}
+                                    {/* <a href="about:blank#TODO">Learn more</a> */}
+                                </p>
+                                <dl className={styles.foldersList}>
+                                    <CompactGroupsComponent groups={context.groups} />
+                                </dl>
+                            </>
+                        )}
                     </div>
                 </div>
             </PopupFrame>

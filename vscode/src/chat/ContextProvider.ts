@@ -8,11 +8,9 @@ import {
 } from '@sourcegraph/cody-shared/src/codebase-context/context-status'
 import { type ConfigurationWithAccessToken } from '@sourcegraph/cody-shared/src/configuration'
 import { type Editor } from '@sourcegraph/cody-shared/src/editor'
-import { EmbeddingsDetector } from '@sourcegraph/cody-shared/src/embeddings/EmbeddingsDetector'
 import { type IndexedKeywordContextFetcher } from '@sourcegraph/cody-shared/src/local-context'
 import { SourcegraphGraphQLAPIClient } from '@sourcegraph/cody-shared/src/sourcegraph-api/graphql'
 import { type GraphQLAPIClientConfig } from '@sourcegraph/cody-shared/src/sourcegraph-api/graphql/client'
-import { isError } from '@sourcegraph/cody-shared/src/utils'
 
 import { getFullConfig } from '../configuration'
 import { getEditor } from '../editor/active-editor'
@@ -169,15 +167,8 @@ export class ContextProvider implements vscode.Disposable, ContextStatusProvider
         this.codebaseContext = codebaseContext
 
         this.statusEmbeddings?.dispose()
-        if (this.localEmbeddings && !this.codebaseContext.embeddings) {
-            // Add status from local embeddings when:
-            // - CodebaseContext has *no* embeddings. This lets us display the
-            //   promotion to set up local embeddings.
-            // - CodebaseContext has local embeddings (in this case,
-            //   this.codebaseContext.embeddings will be null.)
+        if (this.localEmbeddings) {
             this.statusEmbeddings = this.statusAggregator.addProvider(this.localEmbeddings)
-        } else if (this.codebaseContext.embeddings) {
-            this.statusEmbeddings = this.statusAggregator.addProvider(this.codebaseContext.embeddings)
         }
     }
 
@@ -308,25 +299,11 @@ async function getCodebaseContext(
     // should be updated to invoke localEmbeddings.load when the codebase changes
     const repoDirUri = gitDirectoryUri(workspaceRoot)
     const hasLocalEmbeddings = repoDirUri ? localEmbeddings?.load(repoDirUri) : false
-    let embeddingsSearch = await EmbeddingsDetector.newEmbeddingsSearchClient(
-        embeddingsClientCandidates,
-        codebase,
-        workspaceRoot.fsPath
-    )
-    if (isError(embeddingsSearch)) {
-        logDebug(
-            'ContextProvider:getCodebaseContext',
-            `Cody could not find embeddings for '${codebase}' on your Sourcegraph instance`
-        )
-        embeddingsSearch = undefined
-    }
 
     return new CodebaseContext(
         config,
         codebase,
         () => authStatus.endpoint ?? '',
-        // Use embeddings search if there are no local embeddings.
-        (!(await hasLocalEmbeddings) && embeddingsSearch) || null,
         rgPath ? platform.createFilenameContextFetcher?.(rgPath, editor, chatClient) ?? null : null,
         new GraphContextProvider(editor),
         // Use local embeddings if we have them.

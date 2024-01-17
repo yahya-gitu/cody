@@ -14,7 +14,6 @@ import { logDebug, logError } from '../../log'
 import { localStorage } from '../../services/LocalStorageProvider'
 import { telemetryService } from '../../services/telemetry'
 import { telemetryRecorder } from '../../services/telemetry-v2'
-import { type CachedRemoteEmbeddingsClient } from '../CachedRemoteEmbeddingsClient'
 import { type AuthStatus } from '../protocol'
 
 import { ChatPanelsManager } from './ChatPanelsManager'
@@ -40,7 +39,6 @@ export class ChatManager implements vscode.Disposable {
     constructor(
         { extensionUri, ...options }: SidebarViewOptions,
         private chatClient: ChatClient,
-        private embeddingsClient: CachedRemoteEmbeddingsClient,
         private localEmbeddings: LocalEmbeddingsController | null,
         private symf: SymfRunner | null
     ) {
@@ -53,13 +51,7 @@ export class ChatManager implements vscode.Disposable {
 
         this.sidebarViewController = new SidebarViewController(this.options)
 
-        this.chatPanelsManager = new ChatPanelsManager(
-            this.options,
-            this.chatClient,
-            this.embeddingsClient,
-            this.localEmbeddings,
-            this.symf
-        )
+        this.chatPanelsManager = new ChatPanelsManager(this.options, this.chatClient, this.localEmbeddings, this.symf)
 
         // Register Commands
         this.disposables.push(
@@ -167,10 +159,6 @@ export class ChatManager implements vscode.Disposable {
         } catch (error) {
             logError('ChatManager:exportHistory', 'Failed to export chat history', error)
         }
-    }
-
-    public async simplifiedOnboardingReloadEmbeddingsState(): Promise<void> {
-        await this.sidebarViewController.simplifiedOnboardingReloadEmbeddingsState()
     }
 
     public async revive(panel: vscode.WebviewPanel, chatID: string): Promise<void> {

@@ -1,6 +1,5 @@
 import type * as vscode from 'vscode'
 
-import { ContextSearch } from '@sourcegraph/cody-shared/src/chat/recipes/context-search'
 import { PrDescription } from '@sourcegraph/cody-shared/src/chat/recipes/generate-pr-description'
 import { ReleaseNotes } from '@sourcegraph/cody-shared/src/chat/recipes/generate-release-notes'
 import { GitHistory } from '@sourcegraph/cody-shared/src/chat/recipes/git-log'
@@ -61,7 +60,6 @@ export function activate(context: vscode.ExtensionContext): Promise<ExtensionApi
             new ReleaseNotes(),
             new PrDescription(),
             new LocalIndexedKeywordSearch(),
-            new ContextSearch(),
         ],
 
         onConfigurationChange: setCustomAgent,

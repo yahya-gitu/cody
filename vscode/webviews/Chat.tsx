@@ -52,7 +52,6 @@ interface ChatboxProps {
     contextSelection?: ContextFile[] | null
     setChatModels?: (models: ChatModelProvider[]) => void
     chatModels?: ChatModelProvider[]
-    enableNewChatUI: boolean
     userInfo: UserAccountInfo
     guardrails?: Guardrails
 }
@@ -75,7 +74,6 @@ export const Chat: React.FunctionComponent<React.PropsWithChildren<ChatboxProps>
     contextSelection,
     setChatModels,
     chatModels,
-    enableNewChatUI,
     userInfo,
     guardrails,
 }) => {
@@ -224,7 +222,7 @@ export const Chat: React.FunctionComponent<React.PropsWithChildren<ChatboxProps>
             onCurrentChatModelChange={onCurrentChatModelChange}
             ChatModelDropdownMenu={ChatModelDropdownMenu}
             userInfo={userInfo}
-            EnhancedContextSettings={enableNewChatUI ? EnhancedContextSettings : undefined}
+            EnhancedContextSettings={EnhancedContextSettings}
             postMessage={msg => vscodeAPI.postMessage(msg)}
             guardrails={guardrails}
         />

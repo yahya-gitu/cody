@@ -74,7 +74,7 @@ export type WebviewMessage =
     | { command: 'reload' }
     | {
           command: 'simplified-onboarding'
-          type: 'reload-state' | 'web-sign-in-token'
+          type: 'web-sign-in-token'
       }
     | { command: 'getUserContext'; query: string }
     | { command: 'search'; query: string }

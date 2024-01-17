@@ -283,7 +283,6 @@ export const App: React.FunctionComponent<{ vscodeAPI: VSCodeWrapper }> = ({ vsc
                                         chatCommands={myPrompts || undefined}
                                         isTranscriptError={isTranscriptError}
                                         chatModels={chatModels}
-                                        enableNewChatUI={true}
                                         setChatModels={setChatModels}
                                         welcomeMessage={getWelcomeMessageByOS(config?.os)}
                                         guardrails={config.experimentalGuardrails ? guardrails : undefined}

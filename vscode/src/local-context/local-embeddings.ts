@@ -282,7 +282,6 @@ export class LocalEmbeddingsController implements LocalEmbeddingsFetcher, Contex
                     providers: [
                         {
                             kind: 'embeddings',
-                            type: 'local',
                             state: 'indeterminate',
                         },
                     ],
@@ -293,7 +292,7 @@ export class LocalEmbeddingsController implements LocalEmbeddingsFetcher, Contex
             return [
                 {
                     name: path,
-                    providers: [{ kind: 'embeddings', type: 'local', state: 'indexing' }],
+                    providers: [{ kind: 'embeddings', state: 'indexing' }],
                 },
             ]
         }
@@ -304,7 +303,6 @@ export class LocalEmbeddingsController implements LocalEmbeddingsFetcher, Contex
                     providers: [
                         {
                             kind: 'embeddings',
-                            type: 'local',
                             state: 'ready',
                         },
                     ],
@@ -331,7 +329,6 @@ export class LocalEmbeddingsController implements LocalEmbeddingsFetcher, Contex
                 providers: [
                     {
                         kind: 'embeddings',
-                        type: 'local',
                         ...stateAndErrors,
                     },
                 ],

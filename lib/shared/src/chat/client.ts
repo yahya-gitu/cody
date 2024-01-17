@@ -2,7 +2,6 @@ import { CodebaseContext } from '../codebase-context'
 import { type ConfigurationWithAccessToken } from '../configuration'
 import { type Editor } from '../editor'
 import { withPreselectedOptions, type PrefilledOptions } from '../editor/withPreselectedOptions'
-import { SourcegraphEmbeddingsSearchClient } from '../embeddings/client'
 import { SourcegraphIntentDetectorClient } from '../intent-detector/client'
 import { SourcegraphBrowserCompletionsClient } from '../sourcegraph-api/completions/browserClient'
 import { type CompletionsClientConfig, type SourcegraphCompletionsClient } from '../sourcegraph-api/completions/client'
@@ -79,6 +78,7 @@ export async function createClient({
         const completionsClient = createCompletionsClient(fullConfig)
         const chatClient = new ChatClient(completionsClient)
 
+        // TODO: Use repoId for the getCodyContext source.
         const repoId = config.codebase ? await graphqlClient.getRepoIdIfEmbeddingExists(config.codebase) : null
         if (isError(repoId)) {
             throw new Error(
@@ -86,14 +86,10 @@ export async function createClient({
             )
         }
 
-        const embeddingsSearch = repoId
-            ? new SourcegraphEmbeddingsSearchClient(graphqlClient, config.codebase || repoId, repoId, undefined, true)
-            : null
         const codebaseContext = new CodebaseContext(
             config,
             config.codebase,
             () => config.serverEndpoint,
-            embeddingsSearch,
             null,
             null,
             null
