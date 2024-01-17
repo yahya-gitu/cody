@@ -8,8 +8,8 @@ import {
     type ContextProvider,
     type EnhancedContextContextT,
     type LocalEmbeddingsProvider,
+    type LocalSearchProvider,
     type RemoteSearchProvider,
-    type SearchProvider,
 } from '@sourcegraph/cody-shared/src/codebase-context/context-status'
 
 import { PopupFrame } from '../Popups/Popup'
@@ -44,15 +44,19 @@ export const EnhancedContextContext: React.Context<EnhancedContextContextT> = Re
 export const EnhancedContextEnabled: React.Context<boolean> = React.createContext(true)
 
 export const EnhancedContextEventHandlers: React.Context<EnhancedContextEventHandlersT> = React.createContext({
+    onAddRemoteSearchRepo: (): void => {},
     onConsentToEmbeddings: (_): void => {},
     onEnabledChange: (_): void => {},
+    onRemoveRemoteSearchRepo: (_): void => {},
     onShouldBuildSymfIndex: (_): void => {},
 })
 
 export interface EnhancedContextEventHandlersT {
+    onAddRemoteSearchRepo: () => void
     onConsentToEmbeddings: (provider: LocalEmbeddingsProvider) => void
     onEnabledChange: (enabled: boolean) => void
-    onShouldBuildSymfIndex: (provider: SearchProvider) => void
+    onRemoveRemoteSearchRepo: (id: string) => void
+    onShouldBuildSymfIndex: (provider: LocalSearchProvider) => void
 }
 
 function useEnhancedContextContext(): EnhancedContextContextT {
@@ -67,9 +71,11 @@ function useEnhancedContextEventHandlers(): EnhancedContextEventHandlersT {
     return React.useContext(EnhancedContextEventHandlers)
 }
 
-const CompactGroupsComponent: React.FunctionComponent<{ groups: readonly ContextGroup[] }> = ({
-    groups,
-}): React.ReactNode => {
+const CompactGroupsComponent: React.FunctionComponent<{
+    groups: readonly ContextGroup[]
+    handleAdd: () => void
+    handleRemove: (id: string) => void
+}> = ({ groups, handleAdd, handleRemove }): React.ReactNode => {
     // The compact groups component is only used for enterprise context, which
     // uses homogeneous remote search providers. Lift the providers out of the
     // groups.
@@ -103,25 +109,44 @@ const CompactGroupsComponent: React.FunctionComponent<{ groups: readonly Context
     return (
         <>
             <dt title="Repositories" className={styles.lineBreakAll}>
-                <i className="codicon codicon-repo-forked" /> Repositories
+                Repositories
             </dt>
             <dd>
                 <ol className={styles.providersList}>
                     {liftedProviders.map(([group, provider]) => (
-                        <CompactProviderComponent key={provider.id} name={group} inclusion={provider.inclusion} />
+                        <CompactProviderComponent
+                            key={provider.id}
+                            id={provider.id}
+                            name={group}
+                            inclusion={provider.inclusion}
+                            handleRemove={handleRemove}
+                        />
                     ))}
+                    <li>
+                        <VSCodeButton onClick={() => handleAdd()}>Add Repositories&hellip;</VSCodeButton>
+                    </li>
                 </ol>
             </dd>
         </>
     )
 }
 
-const CompactProviderComponent: React.FunctionComponent<{ name: string; inclusion: 'auto' | 'manual' }> = ({
-    name,
-    inclusion,
-}): React.ReactNode => (
+const CompactProviderComponent: React.FunctionComponent<{
+    id: string
+    name: string
+    inclusion: 'auto' | 'manual'
+    handleRemove: (id: string) => void
+}> = ({ id, name, inclusion, handleRemove }): React.ReactNode => (
     <li>
-        {name} {inclusion === 'auto' ? '(i)' : 'X'}
+        <i className="codicon codicon-repo-forked" /> {name}{' '}
+        {inclusion === 'auto' ? (
+            // TODO(dpc): The info icon and close button should be right-aligned in a grid, etc.
+            <i className="codicon codicon-info" title="Included automatically based on your workspace" />
+        ) : (
+            <button onClick={() => handleRemove(id)} type="button" title="Remove">
+                <i className="codicon codicon-close" />
+            </button>
+        )}
     </li>
 )
 
@@ -163,7 +188,7 @@ function labelFor(kind: string): string {
 }
 
 const SearchIndexComponent: React.FunctionComponent<{
-    provider: SearchProvider
+    provider: LocalSearchProvider
     indexStatus: 'failed' | 'unindexed'
 }> = ({ provider, indexStatus }): React.ReactNode => {
     const events = useEnhancedContextEventHandlers()
@@ -311,6 +336,15 @@ export const EnhancedContextSettings: React.FunctionComponent<EnhancedContextSet
         [events, enabled]
     )
 
+    // Handles removing a manually added remote search provider.
+    const handleRemoveRemoteSearchRepo = React.useCallback(
+        (id: string) => {
+            events.onRemoveRemoteSearchRepo(id)
+        },
+        [events]
+    )
+    const handleAddRemoteSearchRepo = React.useCallback(() => events.onAddRemoteSearchRepo(), [events])
+
     const hasOpenedBeforeKey = 'enhanced-context-settings.has-opened-before'
     const hasOpenedBefore = localStorage.getItem(hasOpenedBeforeKey) === 'true'
     if (isOpen && !hasOpenedBefore) {
@@ -375,7 +409,11 @@ export const EnhancedContextSettings: React.FunctionComponent<EnhancedContextSet
                                     {/* <a href="about:blank#TODO">Learn more</a> */}
                                 </p>
                                 <dl className={styles.foldersList}>
-                                    <CompactGroupsComponent groups={context.groups} />
+                                    <CompactGroupsComponent
+                                        groups={context.groups}
+                                        handleAdd={handleAddRemoteSearchRepo}
+                                        handleRemove={handleRemoveRemoteSearchRepo}
+                                    />
                                 </dl>
                             </>
                         )}

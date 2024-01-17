@@ -7,6 +7,7 @@ import { type ChatEventSource } from '@sourcegraph/cody-shared/src/chat/transcri
 
 import { type View } from '../../../webviews/NavBar'
 import { CODY_PASSTHROUGH_VSCODE_OPEN_COMMAND_ID } from '../../commands/prompt/display-text'
+import { type RemoteRepoPicker } from '../../context/repo-picker'
 import { isRunningInsideAgent } from '../../jsonrpc/isRunningInsideAgent'
 import { type LocalEmbeddingsController } from '../../local-context/local-embeddings'
 import { type SymfRunner } from '../../local-context/symf'
@@ -39,6 +40,7 @@ export class ChatManager implements vscode.Disposable {
     constructor(
         { extensionUri, ...options }: SidebarViewOptions,
         private chatClient: ChatClient,
+        repoPicker: RemoteRepoPicker,
         private localEmbeddings: LocalEmbeddingsController | null,
         private symf: SymfRunner | null
     ) {
@@ -51,7 +53,13 @@ export class ChatManager implements vscode.Disposable {
 
         this.sidebarViewController = new SidebarViewController(this.options)
 
-        this.chatPanelsManager = new ChatPanelsManager(this.options, this.chatClient, this.localEmbeddings, this.symf)
+        this.chatPanelsManager = new ChatPanelsManager(
+            this.options,
+            this.chatClient,
+            repoPicker,
+            this.localEmbeddings,
+            this.symf
+        )
 
         // Register Commands
         this.disposables.push(

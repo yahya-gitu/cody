@@ -8,6 +8,7 @@ import {
     type FeatureFlagProvider,
 } from '@sourcegraph/cody-shared/src/experimentation/FeatureFlagProvider'
 
+import { type RemoteRepoPicker } from '../../context/repo-picker'
 import { type LocalEmbeddingsController } from '../../local-context/local-embeddings'
 import { type SymfRunner } from '../../local-context/symf'
 import { logDebug } from '../../log'
@@ -31,6 +32,7 @@ export interface ChatViewProviderWebview extends Omit<vscode.Webview, 'postMessa
 
 interface ChatPanelProviderOptions extends MessageProviderOptions {
     extensionUri: vscode.Uri
+    repoPicker: RemoteRepoPicker
     treeView: TreeViewProvider
     featureFlagProvider: FeatureFlagProvider
 }
@@ -56,11 +58,12 @@ export class ChatPanelsManager implements vscode.Disposable {
     constructor(
         { extensionUri, ...options }: SidebarViewOptions,
         private chatClient: ChatClient,
+        repoPicker: RemoteRepoPicker,
         private readonly localEmbeddings: LocalEmbeddingsController | null,
         private readonly symf: SymfRunner | null
     ) {
         logDebug('ChatPanelsManager:constructor', 'init')
-        this.options = { treeView: this.treeViewProvider, extensionUri, featureFlagProvider, ...options }
+        this.options = { treeView: this.treeViewProvider, repoPicker, extensionUri, featureFlagProvider, ...options }
 
         // Create treeview
         this.treeView = vscode.window.createTreeView('cody.chat.tree.view', {

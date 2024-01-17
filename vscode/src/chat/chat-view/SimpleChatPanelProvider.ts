@@ -35,6 +35,7 @@ import { type View } from '../../../webviews/NavBar'
 import { createDisplayTextWithFileLinks, createDisplayTextWithFileSelection } from '../../commands/prompt/display-text'
 import { getContextForCommand } from '../../commands/utils/get-context'
 import { getFullConfig } from '../../configuration'
+import { type RemoteRepoPicker } from '../../context/repo-picker'
 import { executeEdit } from '../../edit/execute'
 import { getFileContextFiles, getOpenTabsContextFile, getSymbolContextFiles } from '../../editor/utils/editor-context'
 import { type VSCodeEditor } from '../../editor/vscode-editor'
@@ -84,6 +85,7 @@ interface SimpleChatPanelProviderOptions {
     symf: SymfRunner | null
     editor: VSCodeEditor
     treeView: TreeViewProvider
+    repoPicker: RemoteRepoPicker
     featureFlagProvider: FeatureFlagProvider
     models: ChatModelProvider[]
 }
@@ -118,6 +120,7 @@ export class SimpleChatPanelProvider implements vscode.Disposable, ChatSession {
     private readonly contextStatusAggregator = new ContextStatusAggregator()
     private readonly editor: VSCodeEditor
     private readonly treeView: TreeViewProvider
+    private readonly repoPicker: RemoteRepoPicker
 
     private history = new ChatHistoryManager()
     private prompter: IPrompter = new DefaultPrompter()
@@ -140,6 +143,7 @@ export class SimpleChatPanelProvider implements vscode.Disposable, ChatSession {
         symf,
         editor,
         treeView,
+        repoPicker,
         models,
     }: SimpleChatPanelProviderOptions) {
         this.config = config
@@ -151,6 +155,7 @@ export class SimpleChatPanelProvider implements vscode.Disposable, ChatSession {
         this.symf = symf
         this.editor = editor
         this.treeView = treeView
+        this.repoPicker = repoPicker
         this.chatModel = new SimpleChatModel(this.selectModel(models))
         this.sessionID = this.chatModel.sessionID
 
@@ -401,6 +406,14 @@ export class SimpleChatPanelProvider implements vscode.Disposable, ChatSession {
                 break
             case 'openLocalFileWithRange':
                 await openLocalFileWithRange(message.filePath, message.range)
+                break
+            case 'context/add-remote-search-repo': {
+                // TODO integrate this on a consistent basis
+                void this.repoPicker.show()
+                // TODO this needs to subscribe to context changes
+                break
+            }
+            case 'context/remove-remote-search-repo':
                 break
             case 'embeddings/index':
                 void this.localEmbeddings?.index()

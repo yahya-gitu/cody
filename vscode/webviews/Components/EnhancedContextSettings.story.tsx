@@ -90,14 +90,20 @@ export const SingleTile: StoryObj<typeof EnhancedContextSettings | SingleTileArg
         const [isOpen, setIsOpen] = useState<boolean>(args.isOpen)
 
         const eventHandlers: EnhancedContextEventHandlersT = {
-            onConsentToEmbeddings(provider: LocalEmbeddingsProvider): void {
-                updateArgs({ state: 'indexing' })
+            onAddRemoteSearchRepo(): void {
+                alert('Add a repository')
             },
-            onShouldBuildSymfIndex(provider: SearchProvider): void {
+            onConsentToEmbeddings(provider: LocalEmbeddingsProvider): void {
                 updateArgs({ state: 'indexing' })
             },
             onEnabledChange(enabled: boolean): void {
                 console.log(`Thank you for ${enabled ? 'enabling' : 'disabling'} the enhanced context!`)
+            },
+            onRemoveRemoteSearchRepo(id): void {
+                alert(`Remove remote search repo "${id}"`)
+            },
+            onShouldBuildSymfIndex(provider: SearchProvider): void {
+                updateArgs({ state: 'indexing' })
             },
         }
 
