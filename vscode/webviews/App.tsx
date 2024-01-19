@@ -67,6 +67,15 @@ export const App: React.FunctionComponent<{ vscodeAPI: VSCodeWrapper }> = ({ vsc
     const [enhancedContextStatus, setEnhancedContextStatus] = useState<EnhancedContextContextT>({
         groups: [],
     })
+    const onAddRemoteSearchRepo = useCallback((): void => {
+        vscodeAPI.postMessage({ command: 'context/add-remote-search-repo' })
+    }, [vscodeAPI])
+    const onRemoveRemoteSearchRepo = useCallback(
+        (id: string): void => {
+            vscodeAPI.postMessage({ command: 'context/remove-remote-search-repo', repoId: id })
+        },
+        [vscodeAPI]
+    )
     const onConsentToEmbeddings = useCallback((): void => {
         vscodeAPI.postMessage({ command: 'embeddings/index' })
     }, [vscodeAPI])
@@ -274,13 +283,15 @@ export const App: React.FunctionComponent<{ vscodeAPI: VSCodeWrapper }> = ({ vsc
                     {view === 'chat' && (
                         <EnhancedContextEventHandlers.Provider
                             value={{
+                                onAddRemoteSearchRepo,
                                 onConsentToEmbeddings,
-                                onShouldBuildSymfIndex,
                                 onEnabledChange: (enabled): void => {
                                     if (enabled !== enhancedContextEnabled) {
                                         setEnhancedContextEnabled(enabled)
                                     }
                                 },
+                                onRemoveRemoteSearchRepo,
+                                onShouldBuildSymfIndex,
                             }}
                         >
                             <EnhancedContextContext.Provider value={enhancedContextStatus}>
@@ -302,7 +313,6 @@ export const App: React.FunctionComponent<{ vscodeAPI: VSCodeWrapper }> = ({ vsc
                                         chatCommands={myPrompts || undefined}
                                         isTranscriptError={isTranscriptError}
                                         chatModels={chatModels}
-                                        enableNewChatUI={true}
                                         setChatModels={setChatModels}
                                         welcomeMessage={getWelcomeMessageByOS(config?.os)}
                                         guardrails={

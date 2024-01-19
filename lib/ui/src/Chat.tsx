@@ -73,6 +73,7 @@ interface ChatProps extends ChatClassNames {
     EnhancedContextSettings?: React.FunctionComponent<{
         isOpen: boolean
         setOpen: (open: boolean) => void
+        presentationMode: 'consumer' | 'enterprise'
     }>
     ChatModelDropdownMenu?: React.FunctionComponent<ChatModelDropdownMenuProps>
     onCurrentChatModelChange?: (model: ChatModelProvider) => void
@@ -642,6 +643,7 @@ export const Chat: React.FunctionComponent<ChatProps> = ({
                                 <EnhancedContextSettings
                                     isOpen={isEnhancedContextOpen}
                                     setOpen={setIsEnhancedContextOpen}
+                                    presentationMode={userInfo.isDotComUser ? 'consumer' : 'enterprise'}
                                 />
                             </div>
                         )}

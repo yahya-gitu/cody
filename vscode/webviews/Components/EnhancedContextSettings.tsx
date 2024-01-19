@@ -8,7 +8,8 @@ import type {
     ContextProvider,
     EnhancedContextContextT,
     LocalEmbeddingsProvider,
-    SearchProvider,
+    LocalSearchProvider,
+    RemoteSearchProvider,
 } from '@sourcegraph/cody-shared'
 import { useEnhancedContextEnabled } from '@sourcegraph/cody-ui/src/chat/components/EnhancedContext'
 
@@ -18,7 +19,15 @@ import { getVSCodeAPI } from '../utils/VSCodeApi'
 import popupStyles from '../Popups/Popup.module.css'
 import styles from './EnhancedContextSettings.module.css'
 
+export enum EnhancedContextPresentationMode {
+    // An expansive display with heterogenous providers grouped by source.
+    Consumer = 'consumer',
+    // A compact display with remote search providers over a list of sources.
+    Enterprise = 'enterprise',
+}
+
 interface EnhancedContextSettingsProps {
+    presentationMode: 'consumer' | 'enterprise'
     isOpen: boolean
     setOpen: (open: boolean) => void
 }
@@ -35,15 +44,19 @@ export const EnhancedContextContext: React.Context<EnhancedContextContextT> = Re
 
 export const EnhancedContextEventHandlers: React.Context<EnhancedContextEventHandlersT> =
     React.createContext({
+        onAddRemoteSearchRepo: (): void => {},
         onConsentToEmbeddings: (_): void => {},
         onEnabledChange: (_): void => {},
+        onRemoveRemoteSearchRepo: (_): void => {},
         onShouldBuildSymfIndex: (_): void => {},
     })
 
 export interface EnhancedContextEventHandlersT {
+    onAddRemoteSearchRepo: () => void
     onConsentToEmbeddings: (provider: LocalEmbeddingsProvider) => void
     onEnabledChange: (enabled: boolean) => void
-    onShouldBuildSymfIndex: (provider: SearchProvider) => void
+    onRemoveRemoteSearchRepo: (id: string) => void
+    onShouldBuildSymfIndex: (provider: LocalSearchProvider) => void
 }
 
 function useEnhancedContextContext(): EnhancedContextContextT {
@@ -53,6 +66,85 @@ function useEnhancedContextContext(): EnhancedContextContextT {
 function useEnhancedContextEventHandlers(): EnhancedContextEventHandlersT {
     return React.useContext(EnhancedContextEventHandlers)
 }
+
+const CompactGroupsComponent: React.FunctionComponent<{
+    groups: readonly ContextGroup[]
+    handleAdd: () => void
+    handleRemove: (id: string) => void
+}> = ({ groups, handleAdd, handleRemove }): React.ReactNode => {
+    // The compact groups component is only used for enterprise context, which
+    // uses homogeneous remote search providers. Lift the providers out of the
+    // groups.
+    const liftedProviders: [string, RemoteSearchProvider][] = []
+    for (const group of groups) {
+        const providers = group.providers.filter(
+            (provider: ContextProvider): provider is RemoteSearchProvider =>
+                provider.kind === 'search' && provider.type === 'remote'
+        )
+        console.assert(
+            providers.length !== group.providers.length,
+            'enterprise context should only use remote search providers'
+        )
+        if (providers.length) {
+            liftedProviders.push([group.displayName, providers[0]])
+        }
+    }
+
+    // Sort the providers so automatically included ones appear first, then sort
+    // by name.
+    liftedProviders.sort((a, b) => {
+        if (a[1].inclusion === 'auto' && b[1].inclusion !== 'auto') {
+            return -1
+        }
+        if (b[1].inclusion === 'auto') {
+            return 1
+        }
+        return a[0].localeCompare(b[0])
+    })
+
+    return (
+        <>
+            <dt title="Repositories" className={styles.lineBreakAll}>
+                Repositories
+            </dt>
+            <dd>
+                <ol className={styles.providersList}>
+                    {liftedProviders.map(([group, provider]) => (
+                        <CompactProviderComponent
+                            key={provider.id}
+                            id={provider.id}
+                            name={group}
+                            inclusion={provider.inclusion}
+                            handleRemove={handleRemove}
+                        />
+                    ))}
+                    <li>
+                        <VSCodeButton onClick={() => handleAdd()}>Add Repositories&hellip;</VSCodeButton>
+                    </li>
+                </ol>
+            </dd>
+        </>
+    )
+}
+
+const CompactProviderComponent: React.FunctionComponent<{
+    id: string
+    name: string
+    inclusion: 'auto' | 'manual'
+    handleRemove: (id: string) => void
+}> = ({ id, name, inclusion, handleRemove }): React.ReactNode => (
+    <li>
+        <i className="codicon codicon-repo-forked" /> {name}{' '}
+        {inclusion === 'auto' ? (
+            // TODO(dpc): The info icon and close button should be right-aligned in a grid, etc.
+            <i className="codicon codicon-info" title="Included automatically based on your workspace" />
+        ) : (
+            <button onClick={() => handleRemove(id)} type="button" title="Remove">
+                <i className="codicon codicon-close" />
+            </button>
+        )}
+    </li>
+)
 
 const ContextGroupComponent: React.FunctionComponent<{
     group: ContextGroup
@@ -92,7 +184,7 @@ function labelFor(kind: string): string {
 }
 
 const SearchIndexComponent: React.FunctionComponent<{
-    provider: SearchProvider
+    provider: LocalSearchProvider
     indexStatus: 'failed' | 'unindexed'
 }> = ({ provider, indexStatus }): React.ReactNode => {
     const events = useEnhancedContextEventHandlers()
@@ -147,13 +239,6 @@ function contextProviderState(provider: ContextProvider): React.ReactNode {
         case 'indeterminate':
             return <></>
         case 'ready':
-            if (provider.kind === 'embeddings' && provider.type === 'remote') {
-                return (
-                    <p className={classNames(styles.providerExplanatoryText, styles.lineBreakAll)}>
-                        Inherited {provider.remoteName}
-                    </p>
-                )
-            }
             return <span className={styles.providerInlineState}>&mdash; Indexed</span>
         case 'indexing':
             return <span className={styles.providerInlineState}>&mdash; Indexing&hellip;</span>
@@ -161,13 +246,6 @@ function contextProviderState(provider: ContextProvider): React.ReactNode {
             return <EmbeddingsConsentComponent provider={provider} />
         case 'no-match':
             if (provider.kind === 'embeddings') {
-                if (provider.type === 'remote') {
-                    return (
-                        <p className={styles.providerExplanatoryText}>
-                            No repository matching {provider.remoteName} on {provider.origin}
-                        </p>
-                    )
-                }
                 // Error messages for local embeddings missing.
                 switch (provider.errorReason) {
                     case 'not-a-git-repo':
@@ -239,6 +317,7 @@ const ContextProviderComponent: React.FunctionComponent<{ provider: ContextProvi
 }
 
 export const EnhancedContextSettings: React.FunctionComponent<EnhancedContextSettingsProps> = ({
+    presentationMode,
     isOpen,
     setOpen,
 }): React.ReactNode => {
@@ -261,6 +340,15 @@ export const EnhancedContextSettings: React.FunctionComponent<EnhancedContextSet
         },
         [events, enabled]
     )
+
+    // Handles removing a manually added remote search provider.
+    const handleRemoveRemoteSearchRepo = React.useCallback(
+        (id: string) => {
+            events.onRemoveRemoteSearchRepo(id)
+        },
+        [events]
+    )
+    const handleAddRemoteSearchRepo = React.useCallback(() => events.onAddRemoteSearchRepo(), [events])
 
     const hasOpenedBeforeKey = 'enhanced-context-settings.has-opened-before'
     const hasOpenedBefore = localStorage.getItem(hasOpenedBeforeKey) === 'true'
@@ -311,15 +399,27 @@ export const EnhancedContextSettings: React.FunctionComponent<EnhancedContextSet
                                 Learn more
                             </a>
                         </p>
-                        <dl className={styles.foldersList}>
-                            {context.groups.map(group => (
-                                <ContextGroupComponent
-                                    key={group.displayName}
-                                    group={group}
-                                    allGroups={context.groups}
-                                />
-                            ))}
-                        </dl>
+                        {presentationMode === EnhancedContextPresentationMode.Consumer ? (
+                            <dl className={styles.foldersList}>
+                                {context.groups.map(group => (
+                                    <ContextGroupComponent
+                                        key={group.displayName}
+                                        group={group}
+                                        allGroups={context.groups}
+                                    />
+                                ))}
+                            </dl>
+                        ) : (
+                            <dl className={styles.foldersList}>
+                                {context.groups.map(group => (
+                                    <ContextGroupComponent
+                                        key={group.displayName}
+                                        group={group}
+                                        allGroups={context.groups}
+                                    />
+                                ))}
+                            </dl>
+                        )}
                     </div>
                 </div>
             </PopupFrame>

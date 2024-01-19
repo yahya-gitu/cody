@@ -2,8 +2,6 @@ import { isEqual } from 'lodash'
 import * as vscode from 'vscode'
 
 import {
-    isDotCom,
-    isError,
     isFileURI,
     uriBasename,
     type ContextGroup,
@@ -17,7 +15,6 @@ import { getConfiguration } from '../../configuration'
 import { getEditor } from '../../editor/active-editor'
 import type { SymfRunner } from '../../local-context/symf'
 import { getCodebaseFromWorkspaceUri } from '../../repository/repositoryHelpers'
-import type { CachedRemoteEmbeddingsClient } from '../CachedRemoteEmbeddingsClient'
 
 interface CodebaseIdentifiers {
     localFolder: vscode.Uri
@@ -43,7 +40,6 @@ export class CodebaseStatusProvider implements vscode.Disposable, ContextStatusP
 
     constructor(
         private readonly editor: Editor,
-        private readonly embeddingsClient: CachedRemoteEmbeddingsClient,
         private readonly symf: SymfRunner | null
     ) {
         this.disposables.push(
@@ -92,7 +88,6 @@ export class CodebaseStatusProvider implements vscode.Disposable, ContextStatusP
         }
 
         const providers: ContextProvider[] = []
-        providers.push(...this.getRemoteEmbeddingsStatus())
         providers.push(...this.getSymfIndexStatus())
 
         if (providers.length === 0) {
@@ -115,39 +110,8 @@ export class CodebaseStatusProvider implements vscode.Disposable, ContextStatusP
         return [
             {
                 kind: 'search',
+                type: 'local',
                 state: this.symfIndexStatus || 'unindexed',
-            },
-        ]
-    }
-
-    private getRemoteEmbeddingsStatus(): ContextProvider[] {
-        const codebase = this._currentCodebase
-        if (!codebase) {
-            return []
-        }
-        if (codebase?.remote && codebase?.remoteRepoId) {
-            return [
-                {
-                    kind: 'embeddings',
-                    type: 'remote',
-                    state: 'ready',
-                    origin: this.embeddingsClient.getEndpoint(),
-                    remoteName: codebase.remote,
-                },
-            ]
-        }
-        if (!codebase?.remote || isDotCom(this.embeddingsClient.getEndpoint())) {
-            // Dotcom users or no remote codebase name: remote embeddings omitted from context
-            return []
-        }
-        // Enterprise users where no repo ID is found for the desired remote codebase name: no-match context group
-        return [
-            {
-                kind: 'embeddings',
-                type: 'remote',
-                state: 'no-match',
-                origin: this.embeddingsClient.getEndpoint(),
-                remoteName: codebase.remote,
             },
         ]
     }
@@ -168,7 +132,7 @@ export class CodebaseStatusProvider implements vscode.Disposable, ContextStatusP
         }
     }
 
-    private async _updateCodebase_NoFire(): Promise<boolean> {
+    private _updateCodebase_NoFire(): Promise<boolean> {
         const workspaceRoot = this.editor.getWorkspaceRootUri()
         const config = getConfiguration()
         if (
@@ -178,7 +142,7 @@ export class CodebaseStatusProvider implements vscode.Disposable, ContextStatusP
             this._currentCodebase?.remoteRepoId
         ) {
             // do nothing if local codebase identifier is unchanged and we have a remote repo ID
-            return false
+            return Promise.resolve(false)
         }
 
         let newCodebase: CodebaseIdentifiers | null = null
@@ -191,16 +155,14 @@ export class CodebaseStatusProvider implements vscode.Disposable, ContextStatusP
                 config.codebase ||
                 (currentFile ? getCodebaseFromWorkspaceUri(currentFile) : config.codebase)
             if (newCodebase.remote) {
-                const repoId = await this.embeddingsClient.getRepoIdIfEmbeddingExists(newCodebase.remote)
-                if (!isError(repoId)) {
-                    newCodebase.remoteRepoId = repoId ?? undefined
-                }
+                // await this.embeddingsClient.getRepoIdIfEmbeddingExists(newCodebase.remote)
+                // TODO(dpc): Wire in use of repoId here and automatically included remotes search here.
             }
         }
 
         const didCodebaseChange = !isEqual(this._currentCodebase, newCodebase)
         this._currentCodebase = newCodebase
-        return didCodebaseChange
+        return Promise.resolve(didCodebaseChange)
     }
 
     private async _updateSymfStatus_NoFire(): Promise<boolean> {

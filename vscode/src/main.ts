@@ -9,10 +9,10 @@ import {
     newPromptMixin,
     PromptMixin,
     setLogger,
+    SourcegraphGraphQLAPIClient,
     type ConfigurationWithAccessToken,
 } from '@sourcegraph/cody-shared'
 
-import { CachedRemoteEmbeddingsClient } from './chat/CachedRemoteEmbeddingsClient'
 import { ChatManager, CodyChatPanelViewType } from './chat/chat-view/ChatManager'
 import type { ChatSession } from './chat/chat-view/SimpleChatPanelProvider'
 import { ContextProvider } from './chat/ContextProvider'
@@ -29,6 +29,8 @@ import { newCodyCommandArgs, type CodyCommandArgs } from './commands'
 import { GhostHintDecorator } from './commands/GhostHintDecorator'
 import { createInlineCompletionItemProvider } from './completions/create-inline-completion-item-provider'
 import { getConfiguration, getFullConfig } from './configuration'
+import { RemoteSearch } from './context/remote-search'
+import { RemoteRepoPicker } from './context/repo-picker'
 import { EditManager } from './edit/manager'
 import { manageDisplayPathEnvInfoForExtension } from './editor/displayPathEnvInfo'
 import { VSCodeEditor } from './editor/vscode-editor'
@@ -64,14 +66,11 @@ export async function start(
 
     setLogger({ logDebug, logError })
 
-    const rgPath = platform.getRgPath ? await platform.getRgPath() : null
-
     const disposables: vscode.Disposable[] = []
 
     const { disposable, onConfigurationChange } = await register(
         context,
         await getFullConfig(),
-        rgPath,
         platform
     )
     disposables.push(disposable)
@@ -97,8 +96,7 @@ export async function start(
 const register = async (
     context: vscode.ExtensionContext,
     initialConfig: ConfigurationWithAccessToken,
-    rgPath: string | null,
-    platform: Omit<PlatformContext, 'getRgPath'>
+    platform: PlatformContext
 ): Promise<{
     disposable: vscode.Disposable
     onConfigurationChange: (newConfig: ConfigurationWithAccessToken) => Promise<void>
@@ -163,21 +161,24 @@ const register = async (
         localEmbeddings,
         onConfigurationChange: externalServicesOnDidConfigurationChange,
         symfRunner,
-    } = await configureExternalServices(context, initialConfig, rgPath, editor, platform)
+    } = await configureExternalServices(context, initialConfig, editor, platform)
 
     if (symfRunner) {
         disposables.push(symfRunner)
     }
 
+    const remoteSearch = new RemoteSearch(new SourcegraphGraphQLAPIClient(initialConfig))
+    if (remoteSearch) {
+        disposables.push(remoteSearch)
+    }
+
+    // TODO(dpc): Introduce remoteSearch to ContextProvider for inline edits
     const contextProvider = new ContextProvider(
         initialConfig,
-        chatClient,
         initialCodebaseContext,
         editor,
-        rgPath,
         symfRunner,
         authProvider,
-        platform,
         localEmbeddings
     )
     disposables.push(contextProvider)
@@ -196,16 +197,26 @@ const register = async (
     // Evaluate a mock feature flag for the purpose of an A/A test. No functionality is affected by this flag.
     await featureFlagProvider.evaluateFeatureFlag(FeatureFlag.CodyChatMockTest)
 
-    const embeddingsClient = new CachedRemoteEmbeddingsClient(initialConfig)
+    const item = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 100)
+    item.text = 'DEV Pick Repos'
+    item.command = 'cody.dev-repos'
+    const repoPicker = new RemoteRepoPicker(initialConfig)
+    vscode.commands.registerCommand('cody.dev-repos', async (): Promise<void> => {
+        const result = await repoPicker.show()
+        console.log(JSON.stringify(result))
+    })
+    item.show()
+
     const chatManager = new ChatManager(
         {
             ...messageProviderOptions,
             extensionUri: context.extensionUri,
         },
         chatClient,
-        embeddingsClient,
+        repoPicker,
         localEmbeddings || null,
         symfRunner || null,
+        remoteSearch || null,
         guardrails,
         commandsController
     )
@@ -232,11 +243,12 @@ const register = async (
         promises.push(configureEventsInfra(newConfig, isExtensionModeDevOrTest))
         platform.onConfigurationChange?.(newConfig)
         symfRunner?.setSourcegraphAuth(newConfig.serverEndpoint, newConfig.accessToken)
+        repoPicker.updateConfiguration(newConfig)
+        remoteSearch.updateConfiguration(newConfig)
         promises.push(
             localEmbeddings?.setAccessToken(newConfig.serverEndpoint, newConfig.accessToken) ??
                 Promise.resolve()
         )
-        embeddingsClient.updateConfiguration(newConfig)
         promises.push(setupAutocomplete())
         await Promise.all(promises)
     }
@@ -435,7 +447,7 @@ const register = async (
         vscode.window.registerUriHandler({
             handleUri: async (uri: vscode.Uri) => {
                 if (uri.path === '/app-done') {
-                    await chatManager.simplifiedOnboardingReloadEmbeddingsState()
+                    // This is an old re-entrypoint from App that is a no-op now.
                 } else {
                     await authProvider.tokenCallbackHandler(uri, config.customHeaders)
                 }

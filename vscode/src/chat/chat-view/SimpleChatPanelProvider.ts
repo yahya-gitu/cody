@@ -34,6 +34,8 @@ import {
     createDisplayTextWithFileSelection,
 } from '../../commands/prompt/display-text'
 import { getFullConfig } from '../../configuration'
+import { RepoInclusion, type RemoteSearch } from '../../context/remote-search'
+import { type RemoteRepoPicker } from '../../context/repo-picker'
 import { executeEdit } from '../../edit/execute'
 import {
     getFileContextFiles,
@@ -61,7 +63,6 @@ import { openExternalLinks, openLocalFileWithRange } from '../../services/utils/
 import { TestSupport } from '../../test-support'
 import { countGeneratedCode } from '../utils'
 
-import type { CachedRemoteEmbeddingsClient } from '../CachedRemoteEmbeddingsClient'
 import type { MessageErrorType } from '../MessageProvider'
 import type {
     AuthStatus,
@@ -91,11 +92,12 @@ interface SimpleChatPanelProviderOptions {
     extensionUri: vscode.Uri
     authProvider: AuthProvider
     chatClient: ChatClient
-    embeddingsClient: CachedRemoteEmbeddingsClient
     localEmbeddings: LocalEmbeddingsController | null
     symf: SymfRunner | null
+    remoteSearch: RemoteSearch | null
     editor: VSCodeEditor
     treeView: TreeViewProvider
+    repoPicker: RemoteRepoPicker
     featureFlagProvider: FeatureFlagProvider
     models: ChatModelProvider[]
     guardrails: Guardrails
@@ -140,15 +142,16 @@ export class SimpleChatPanelProvider implements vscode.Disposable, ChatSession {
     private config: ChatPanelConfig
     private readonly authProvider: AuthProvider
     private readonly chatClient: ChatClient
-    private readonly embeddingsClient: CachedRemoteEmbeddingsClient
     private readonly codebaseStatusProvider: CodebaseStatusProvider
     private readonly localEmbeddings: LocalEmbeddingsController | null
     private readonly symf: SymfRunner | null
+    private readonly remoteSearch: RemoteSearch | null
     private readonly contextStatusAggregator = new ContextStatusAggregator()
     private readonly editor: VSCodeEditor
     private readonly treeView: TreeViewProvider
     private readonly guardrails: Guardrails
     private readonly commandsController?: CommandsController
+    private readonly repoPicker: RemoteRepoPicker
 
     private history = new ChatHistoryManager()
     private contextFilesQueryCancellation?: vscode.CancellationTokenSource
@@ -164,11 +167,12 @@ export class SimpleChatPanelProvider implements vscode.Disposable, ChatSession {
         extensionUri,
         authProvider,
         chatClient,
-        embeddingsClient,
         localEmbeddings,
         symf,
+        remoteSearch,
         editor,
         treeView,
+        repoPicker,
         models,
         commandsController,
         guardrails,
@@ -177,12 +181,13 @@ export class SimpleChatPanelProvider implements vscode.Disposable, ChatSession {
         this.extensionUri = extensionUri
         this.authProvider = authProvider
         this.chatClient = chatClient
-        this.embeddingsClient = embeddingsClient
         this.localEmbeddings = localEmbeddings
         this.symf = symf
+        this.remoteSearch = remoteSearch
         this.commandsController = commandsController
         this.editor = editor
         this.treeView = treeView
+        this.repoPicker = repoPicker
         this.chatModel = new SimpleChatModel(selectModel(authProvider, models))
         this.guardrails = guardrails
 
@@ -203,9 +208,11 @@ export class SimpleChatPanelProvider implements vscode.Disposable, ChatSession {
         if (this.localEmbeddings) {
             this.disposables.push(this.contextStatusAggregator.addProvider(this.localEmbeddings))
         }
+        if (this.remoteSearch) {
+            this.disposables.push(this.contextStatusAggregator.addProvider(this.remoteSearch))
+        }
         this.codebaseStatusProvider = new CodebaseStatusProvider(
             this.editor,
-            embeddingsClient,
             this.config.experimentalSymfContext ? this.symf : null
         )
         this.disposables.push(this.contextStatusAggregator.addProvider(this.codebaseStatusProvider))
@@ -267,6 +274,20 @@ export class SimpleChatPanelProvider implements vscode.Disposable, ChatSession {
             case 'newFile':
                 handleCodeFromSaveToNewFile(message.text, message.metadata)
                 await this.editor.createWorkspaceFile(message.text)
+                break
+            case 'context/add-remote-search-repo': {
+                const repos = await this.repoPicker.show()
+                if (repos) {
+                    // TODO: This is stateful so:
+                    // - The state needs to be persisted and used by new chats.
+                    // - The remote search object should not be shared between chats.
+                    this.remoteSearch?.setRepos(repos, RepoInclusion.Manual)
+                }
+                break
+            }
+            case 'context/remove-remote-search-repo':
+                // TODO: Implement this.
+                void vscode.window.showWarningMessage('Removing repo not yet implemented')
                 break
             case 'embeddings/index':
                 void this.localEmbeddings?.index()
@@ -390,9 +411,9 @@ export class SimpleChatPanelProvider implements vscode.Disposable, ChatSession {
                       getEnhancedContext(
                           this.config.useContext,
                           this.editor,
-                          this.embeddingsClient,
                           this.localEmbeddings,
                           this.config.experimentalSymfContext ? this.symf : null,
+                          this.remoteSearch,
                           this.codebaseStatusProvider,
                           query
                       )
@@ -459,9 +480,9 @@ export class SimpleChatPanelProvider implements vscode.Disposable, ChatSession {
                 getEnhancedContext(
                     this.config.useContext,
                     this.editor,
-                    this.embeddingsClient,
                     this.localEmbeddings,
                     this.config.experimentalSymfContext ? this.symf : null,
+                    this.remoteSearch,
                     this.codebaseStatusProvider,
                     query
                 )
