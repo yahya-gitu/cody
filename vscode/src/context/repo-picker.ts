@@ -163,7 +163,7 @@ export class RemoteRepoPicker implements vscode.Disposable {
             ...workspaceItems,
             {
                 kind: vscode.QuickPickItemKind.Separator,
-                label: 'Other repositories on your Sourcegraph instance',
+                label: 'Repositories from your Sourcegraph instance',
                 name: 'SEPARATOR',
                 id: 'SEPARATOR',
             },

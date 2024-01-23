@@ -1,11 +1,8 @@
-import { URI } from 'vscode-uri'
+import type { URI } from 'vscode-uri'
 import { languageFromFilename, ProgrammingLanguage } from '../common/languages'
-import { type Configuration } from '../configuration'
-import { type ActiveTextEditorSelectionRange } from '../editor'
-import {
-    IndexedKeywordContextFetcher,
-    type LocalEmbeddingsFetcher,
-} from '../local-context'
+import type { Configuration } from '../configuration'
+import type { ActiveTextEditorSelectionRange } from '../editor'
+import type { IndexedKeywordContextFetcher, LocalEmbeddingsFetcher } from '../local-context'
 import { populateCodeContextTemplate, populateMarkdownContextTemplate } from '../prompt/templates'
 import type { Message } from '../sourcegraph-api'
 import type { EmbeddingsSearchResult } from '../sourcegraph-api/graphql/client'
@@ -68,7 +65,9 @@ export class CodebaseContext {
         query: string,
         options: ContextSearchOptions
     ): Promise<ContextMessage[]> {
-        return groupResultsByFile(await this.localEmbeddings?.getContext(query, options.numCodeResults) || [])
+        return groupResultsByFile(
+            (await this.localEmbeddings?.getContext(query, options.numCodeResults)) || []
+        )
             .reverse() // Reverse results so that they appear in ascending order of importance (least -> most).
             .flatMap(groupedResults => CodebaseContext.makeContextMessageWithResponse(groupedResults))
             .map(message => contextMessageWithSource(message, 'embeddings', this.codebase))
