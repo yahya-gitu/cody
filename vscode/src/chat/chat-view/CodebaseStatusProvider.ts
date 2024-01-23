@@ -15,6 +15,7 @@ import { getConfiguration } from '../../configuration'
 import { getEditor } from '../../editor/active-editor'
 import type { SymfRunner } from '../../local-context/symf'
 import { getCodebaseFromWorkspaceUri } from '../../repository/repositoryHelpers'
+import type { CodebaseRepoIdMapper } from '../../context/enterprise-context-factory'
 
 interface CodebaseIdentifiers {
     localFolder: vscode.Uri
@@ -40,7 +41,8 @@ export class CodebaseStatusProvider implements vscode.Disposable, ContextStatusP
 
     constructor(
         private readonly editor: Editor,
-        private readonly symf: SymfRunner | null
+        private readonly symf: SymfRunner | null,
+        private readonly codebaseRepoIdMapper: CodebaseRepoIdMapper | null
     ) {
         this.disposables.push(
             vscode.window.onDidChangeActiveTextEditor(() => this.updateStatus()),
@@ -132,7 +134,7 @@ export class CodebaseStatusProvider implements vscode.Disposable, ContextStatusP
         }
     }
 
-    private _updateCodebase_NoFire(): Promise<boolean> {
+    private async _updateCodebase_NoFire(): Promise<boolean> {
         const workspaceRoot = this.editor.getWorkspaceRootUri()
         const config = getConfiguration()
         if (
@@ -155,8 +157,9 @@ export class CodebaseStatusProvider implements vscode.Disposable, ContextStatusP
                 config.codebase ||
                 (currentFile ? getCodebaseFromWorkspaceUri(currentFile) : config.codebase)
             if (newCodebase.remote) {
-                // await this.embeddingsClient.getRepoIdIfEmbeddingExists(newCodebase.remote)
-                // TODO(dpc): Wire in use of repoId here and automatically included remotes search here.
+                newCodebase.remoteRepoId = (
+                    await this.codebaseRepoIdMapper?.repoForCodebase(newCodebase.remote)
+                )?.id
             }
         }
 

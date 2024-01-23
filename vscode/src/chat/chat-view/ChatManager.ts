@@ -14,8 +14,6 @@ import type { View } from '../../../webviews/NavBar'
 import type { CodyCommandArgs } from '../../commands'
 import type { CommandsController } from '../../commands/CommandsController'
 import { CODY_PASSTHROUGH_VSCODE_OPEN_COMMAND_ID } from '../../commands/prompt/display-text'
-import { type RemoteSearch } from '../../context/remote-search'
-import { type RemoteRepoPicker } from '../../context/repo-picker'
 import { isRunningInsideAgent } from '../../jsonrpc/isRunningInsideAgent'
 import type { LocalEmbeddingsController } from '../../local-context/local-embeddings'
 import type { SymfRunner } from '../../local-context/symf'
@@ -23,12 +21,12 @@ import { logDebug, logError } from '../../log'
 import { localStorage } from '../../services/LocalStorageProvider'
 import { telemetryService } from '../../services/telemetry'
 import { telemetryRecorder } from '../../services/telemetry-v2'
-import { type AuthStatus } from '../protocol'
+import type { AuthStatus } from '../protocol'
 
 import { ChatPanelsManager } from './ChatPanelsManager'
 import { SidebarViewController, type SidebarViewOptions } from './SidebarViewController'
 import type { ChatSession, SimpleChatPanelProvider } from './SimpleChatPanelProvider'
-import { WorkspaceRepoMapper } from '../../context/workspace-repo-mapper'
+import type { EnterpriseContextFactory } from '../../context/enterprise-context-factory'
 
 export const CodyChatPanelViewType = 'cody.chatPanel'
 /**
@@ -49,11 +47,9 @@ export class ChatManager implements vscode.Disposable {
     constructor(
         { extensionUri, ...options }: SidebarViewOptions,
         private chatClient: ChatClient,
-        workspaceRepoMapper: WorkspaceRepoMapper,
-        repoPicker: RemoteRepoPicker,
+        private enterpriseContext: EnterpriseContextFactory | null,
         private localEmbeddings: LocalEmbeddingsController | null,
         private symf: SymfRunner | null,
-        private remoteSearch: RemoteSearch | null,
         private guardrails: Guardrails,
         private commandsController?: CommandsController
     ) {
@@ -69,11 +65,9 @@ export class ChatManager implements vscode.Disposable {
         this.chatPanelsManager = new ChatPanelsManager(
             this.options,
             this.chatClient,
-            workspaceRepoMapper,
-            repoPicker,
             this.localEmbeddings,
             this.symf,
-            this.remoteSearch,
+            this.enterpriseContext,
             this.guardrails,
             this.commandsController
         )

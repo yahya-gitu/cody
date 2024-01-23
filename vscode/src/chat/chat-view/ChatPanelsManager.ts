@@ -9,24 +9,22 @@ import {
     type Guardrails,
 } from '@sourcegraph/cody-shared'
 
-import { type CommandsController } from '../../commands/CommandsController'
-import { type RemoteSearch } from '../../context/remote-search'
-import { type RemoteRepoPicker } from '../../context/repo-picker'
-import { type LocalEmbeddingsController } from '../../local-context/local-embeddings'
-import { type SymfRunner } from '../../local-context/symf'
+import type { CommandsController } from '../../commands/CommandsController'
+import type { LocalEmbeddingsController } from '../../local-context/local-embeddings'
+import type { SymfRunner } from '../../local-context/symf'
 import { logDebug } from '../../log'
 import { telemetryService } from '../../services/telemetry'
 import { telemetryRecorder } from '../../services/telemetry-v2'
 import { createCodyChatTreeItems } from '../../services/treeViewItems'
 import { TreeViewProvider } from '../../services/TreeViewProvider'
-import { type MessageProviderOptions } from '../MessageProvider'
-import { type AuthStatus, type ExtensionMessage } from '../protocol'
+import type { MessageProviderOptions } from '../MessageProvider'
+import type { AuthStatus, ExtensionMessage } from '../protocol'
 
 import { chatHistory } from './ChatHistoryManager'
 import { CodyChatPanelViewType } from './ChatManager'
 import type { SidebarViewOptions } from './SidebarViewController'
 import { SimpleChatPanelProvider } from './SimpleChatPanelProvider'
-import { WorkspaceRepoMapper } from '../../context/workspace-repo-mapper'
+import type { EnterpriseContextFactory } from '../../context/enterprise-context-factory'
 
 type ChatID = string
 
@@ -41,8 +39,6 @@ export interface ChatViewProviderWebview extends Omit<vscode.Webview, 'postMessa
 
 interface ChatPanelProviderOptions extends MessageProviderOptions {
     extensionUri: vscode.Uri
-    workspaceRepoMapper: WorkspaceRepoMapper,
-    repoPicker: RemoteRepoPicker
     treeView: TreeViewProvider
     featureFlagProvider: FeatureFlagProvider
 }
@@ -69,19 +65,15 @@ export class ChatPanelsManager implements vscode.Disposable {
     constructor(
         { extensionUri, ...options }: SidebarViewOptions,
         private chatClient: ChatClient,
-        workspaceRepoMapper: WorkspaceRepoMapper,
-        repoPicker: RemoteRepoPicker,
         private readonly localEmbeddings: LocalEmbeddingsController | null,
         private readonly symf: SymfRunner | null,
-        private readonly remoteSearch: RemoteSearch | null,
+        private readonly enterpriseContext: EnterpriseContextFactory | null,
         private readonly guardrails: Guardrails,
         private readonly commandsController?: CommandsController
     ) {
         logDebug('ChatPanelsManager:constructor', 'init')
         this.options = {
             treeView: this.treeViewProvider,
-            workspaceRepoMapper,
-            repoPicker,
             extensionUri,
             featureFlagProvider,
             ...options,
@@ -223,7 +215,7 @@ export class ChatPanelsManager implements vscode.Disposable {
             chatClient: this.chatClient,
             localEmbeddings: isConsumer ? this.localEmbeddings : null,
             symf: isConsumer ? this.symf : null,
-            remoteSearch: isConsumer ? null : this.remoteSearch,
+            enterpriseContext: isConsumer ? null : this.enterpriseContext,
             models,
             commandsController: this.commandsController,
             guardrails: this.guardrails,

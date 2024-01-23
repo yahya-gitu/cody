@@ -1,131 +1,20 @@
 import * as vscode from 'vscode'
 
-import { SourcegraphGraphQLAPIClient, type GraphQLAPIClientConfig } from '@sourcegraph/cody-shared'
-
 import { logDebug } from '../log'
 import { RemoteSearch } from './remote-search'
-import { WorkspaceRepoMapper } from './workspace-repo-mapper'
+import type { WorkspaceRepoMapper } from './workspace-repo-mapper'
+import { type Repo, type RepoFetcher, RepoFetcherState } from './repo-fetcher'
 
-export interface Repo {
-    name: string
-    id: string
-}
-
-enum RepoFetcherState {
-    Paused,
-    Fetching,
-    Errored,
-    Complete,
-}
-
-// RepoFetcher
-// - Fetches repositories from a Sourcegraph instance.
-// - Notifies a listener when the set of repositories has changed.
-class RepoFetcher implements vscode.Disposable {
-    private state_: RepoFetcherState = RepoFetcherState.Paused
-    private readonly stateChangedEmitter = new vscode.EventEmitter<RepoFetcherState>()
-    public readonly onStateChanged = this.stateChangedEmitter.event
-
-    private readonly repoListChangedEmitter = new vscode.EventEmitter<Repo[]>()
-    public readonly onRepoListChanged = this.repoListChangedEmitter.event
-
-    private error_: Error | undefined
-
-    // The cursor at the end of the last fetched repositories.
-    private after: string | undefined
-    private repos: Repo[] = []
-
-    constructor(private client: SourcegraphGraphQLAPIClient) {}
-
-    public dispose(): void {
-        this.repoListChangedEmitter.dispose()
-        this.stateChangedEmitter.dispose()
-    }
-
-    public get lastError(): Error | undefined {
-        return this.error_
-    }
-
-    public updateConfiguration(config: GraphQLAPIClientConfig): void {
-        this.client = new SourcegraphGraphQLAPIClient(config)
-        this.repos = []
-        this.after = undefined
-        this.state = RepoFetcherState.Paused
-    }
-
-    public pause(): void {
-        this.state = RepoFetcherState.Paused
-    }
-
-    public resume(): void {
-        this.state = RepoFetcherState.Fetching
-        void this.fetch()
-    }
-
-    // Gets the known repositories. The set may be incomplete if fetching hasn't
-    // finished, the cache is stale, etc.
-    public get repositories(): readonly Repo[] {
-        return this.repos
-    }
-
-    public get state(): RepoFetcherState {
-        return this.state_
-    }
-
-    private set state(newState: RepoFetcherState) {
-        if (this.state === newState) {
-            return
-        }
-        this.state_ = newState
-        this.stateChangedEmitter.fire(newState)
-    }
-
-    private async fetch(): Promise<void> {
-        // DONOTCOMMIT: Increase this and remove the timeout.
-        const numResultsPerQuery = 100
-        const client = this.client
-        if (this.state === RepoFetcherState.Paused) {
-            return
-        }
-        do {
-            const result = await client.getRepoList(numResultsPerQuery, this.after)
-            if (this.client !== client) {
-                // The configuration changed during this fetch, so stop.
-                return
-            }
-            if (result instanceof Error) {
-                this.state = RepoFetcherState.Errored
-                this.error_ = result
-                logDebug('RepoFetcher', result.toString())
-                return
-            }
-            const newRepos = result.repositories.nodes
-            this.repos.push(...newRepos)
-            this.repoListChangedEmitter.fire(this.repos)
-            this.after = result.repositories.pageInfo.endCursor || undefined
-
-            // DONOTCOMMIT remove this artificial delay
-            await new Promise(resolve => setTimeout(resolve, 3000))
-        } while (this.state === RepoFetcherState.Fetching && this.after)
-
-        if (!this.after) {
-            this.state = RepoFetcherState.Complete
-        }
-    }
-}
-
-/**
- * A quickpick for choosing a set of repositories from a Sourcegraph instance.
- */
+// A quickpick for choosing a set of repositories from a Sourcegraph instance.
 export class RemoteRepoPicker implements vscode.Disposable {
     private readonly maxSelectedRepoCount: number = RemoteSearch.MAX_REPO_COUNT - 1
     private disposables: vscode.Disposable[] = []
     private readonly quickpick: vscode.QuickPick<vscode.QuickPickItem & Repo>
-    private readonly fetcher: RepoFetcher
-    private readonly workspaceRepoMapper: WorkspaceRepoMapper
 
-    constructor(config: GraphQLAPIClientConfig) {
-        this.fetcher = new RepoFetcher(new SourcegraphGraphQLAPIClient(config))
+    constructor(
+        private readonly fetcher: RepoFetcher,
+        private readonly workspaceRepoMapper: WorkspaceRepoMapper
+    ) {
         this.fetcher.onRepoListChanged(() => this.handleRepoListChanged(), undefined, this.disposables)
         this.fetcher.onStateChanged(
             state => {
@@ -139,10 +28,6 @@ export class RemoteRepoPicker implements vscode.Disposable {
             undefined,
             this.disposables
         )
-
-        this.workspaceRepoMapper = new WorkspaceRepoMapper(config)
-        void this.workspaceRepoMapper.start()
-        this.workspaceRepoMapper.onChange(() => this.handleRepoListChanged(), undefined, this.disposables)
 
         this.quickpick = vscode.window.createQuickPick<vscode.QuickPickItem & Repo>()
         this.updateTitle()
@@ -163,30 +48,24 @@ export class RemoteRepoPicker implements vscode.Disposable {
     }
 
     public dispose(): void {
-        for (const disposable of this.disposables) {
-            disposable.dispose()
-        }
-        this.fetcher.dispose()
+        vscode.Disposable.from(...this.disposables).dispose()
+        this.disposables = []
         this.quickpick.dispose()
     }
 
     private updateTitle(): void {
         const remaining = this.maxSelectedRepoCount - this.quickpick.selectedItems.length
-        this.quickpick.placeholder = remaining === 0 ? 'Click OK to continue' : 'Type to search repositories...'
+        this.quickpick.placeholder =
+            remaining === 0 ? 'Click OK to continue' : 'Type to search repositories...'
         if (remaining === 0) {
             this.quickpick.title = '✅ Choose repositories'
         } else if (remaining === 1) {
-            this.quickpick.title = `✨ Choose the last repository`
+            this.quickpick.title = '✨ Choose the last repository'
         } else if (remaining > 0) {
             this.quickpick.title = `Choose up to ${remaining} more repositories`
         } else {
             this.quickpick.title = `❌ Too many repositories selected: Uncheck ${-remaining} to continue`
         }
-    }
-
-    public updateConfiguration(config: GraphQLAPIClientConfig): void {
-        this.fetcher.updateConfiguration(config)
-        this.workspaceRepoMapper.updateConfiguration(config)
     }
 
     /**
@@ -200,6 +79,14 @@ export class RemoteRepoPicker implements vscode.Disposable {
             onDone = { resolve, reject }
         })
 
+        // Ensure the workspace folder -> repository mapper has started so
+        // the user can choose repositories from their workspace from a short
+        // list.
+        void this.workspaceRepoMapper.start()
+        const workspaceChange = this.workspaceRepoMapper.onChange(() => this.handleRepoListChanged())
+        void promise.finally(() => workspaceChange.dispose())
+
+        // TODO: Set the default list of selected items.
         this.quickpick.selectedItems = []
         this.handleRepoListChanged()
 
@@ -240,7 +127,9 @@ export class RemoteRepoPicker implements vscode.Disposable {
     private handleRepoListChanged(): void {
         const selected = new Set<string>(this.quickpick.selectedItems.map(item => item.id))
 
-        const workspaceRepos = new Set<string>(this.workspaceRepoMapper.workspaceRepos.map(item => item.id))
+        const workspaceRepos = new Set<string>(
+            this.workspaceRepoMapper.workspaceRepos.map(item => item.id)
+        )
 
         const selectedItems: (vscode.QuickPickItem & Repo)[] = []
         const workspaceItems: (vscode.QuickPickItem & Repo)[] = []
@@ -264,17 +153,22 @@ export class RemoteRepoPicker implements vscode.Disposable {
             }
         }
 
-        this.quickpick.items = [{
-            kind: vscode.QuickPickItemKind.Separator,
-            label: 'Repositories in your workspace',
-            name: 'SEPARATOR',
-            id: 'SEPARATOR',
-        }, ...workspaceItems, {
-            kind: vscode.QuickPickItemKind.Separator,
-            label: 'Other repositories on your Sourcegraph instance',
-            name: 'SEPARATOR',
-            id: 'SEPARATOR',
-        }, ...items]
+        this.quickpick.items = [
+            {
+                kind: vscode.QuickPickItemKind.Separator,
+                label: 'Repositories in your workspace',
+                name: 'SEPARATOR',
+                id: 'SEPARATOR',
+            },
+            ...workspaceItems,
+            {
+                kind: vscode.QuickPickItemKind.Separator,
+                label: 'Other repositories on your Sourcegraph instance',
+                name: 'SEPARATOR',
+                id: 'SEPARATOR',
+            },
+            ...items,
+        ]
         this.quickpick.selectedItems = selectedItems
     }
 }

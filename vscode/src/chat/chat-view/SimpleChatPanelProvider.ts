@@ -34,8 +34,7 @@ import {
     createDisplayTextWithFileSelection,
 } from '../../commands/prompt/display-text'
 import { getFullConfig } from '../../configuration'
-import { RepoInclusion, type RemoteSearch } from '../../context/remote-search'
-import { type RemoteRepoPicker } from '../../context/repo-picker'
+import { type RemoteSearch, RepoInclusion } from '../../context/remote-search'
 import { executeEdit } from '../../edit/execute'
 import {
     getFileContextFiles,
@@ -86,7 +85,8 @@ import {
     type ContextItem,
     type MessageWithContext,
 } from './SimpleChatModel'
-import { WorkspaceRepoMapper } from '../../context/workspace-repo-mapper'
+import type { EnterpriseContextFactory } from '../../context/enterprise-context-factory'
+import type { RemoteRepoPicker } from '../../context/repo-picker'
 
 interface SimpleChatPanelProviderOptions {
     config: ChatPanelConfig
@@ -95,11 +95,9 @@ interface SimpleChatPanelProviderOptions {
     chatClient: ChatClient
     localEmbeddings: LocalEmbeddingsController | null
     symf: SymfRunner | null
-    remoteSearch: RemoteSearch | null
+    enterpriseContext: EnterpriseContextFactory | null
     editor: VSCodeEditor
     treeView: TreeViewProvider
-    workspaceRepoMapper: WorkspaceRepoMapper,
-    repoPicker: RemoteRepoPicker
     featureFlagProvider: FeatureFlagProvider
     models: ChatModelProvider[]
     guardrails: Guardrails
@@ -152,11 +150,8 @@ export class SimpleChatPanelProvider implements vscode.Disposable, ChatSession {
     private readonly treeView: TreeViewProvider
     private readonly guardrails: Guardrails
     private readonly commandsController?: CommandsController
-
-    // TODO(dpc): Bundle this enterprise search stuff into one object.
     private readonly remoteSearch: RemoteSearch | null
-    private readonly repoPicker: RemoteRepoPicker
-    private readonly workspaceRepoMapper: WorkspaceRepoMapper
+    private readonly repoPicker: RemoteRepoPicker | null
 
     private history = new ChatHistoryManager()
     private contextFilesQueryCancellation?: vscode.CancellationTokenSource
@@ -174,14 +169,12 @@ export class SimpleChatPanelProvider implements vscode.Disposable, ChatSession {
         chatClient,
         localEmbeddings,
         symf,
-        remoteSearch,
         editor,
         treeView,
-        workspaceRepoMapper,
-        repoPicker,
         models,
         commandsController,
         guardrails,
+        enterpriseContext,
     }: SimpleChatPanelProviderOptions) {
         this.config = config
         this.extensionUri = extensionUri
@@ -189,12 +182,11 @@ export class SimpleChatPanelProvider implements vscode.Disposable, ChatSession {
         this.chatClient = chatClient
         this.localEmbeddings = localEmbeddings
         this.symf = symf
-        this.remoteSearch = remoteSearch
+        this.repoPicker = enterpriseContext?.repoPicker || null
+        this.remoteSearch = enterpriseContext?.createRemoteSearch() || null
         this.commandsController = commandsController
         this.editor = editor
         this.treeView = treeView
-        this.repoPicker = repoPicker
-        this.workspaceRepoMapper = workspaceRepoMapper
         this.chatModel = new SimpleChatModel(selectModel(authProvider, models))
         this.guardrails = guardrails
 
@@ -206,14 +198,6 @@ export class SimpleChatPanelProvider implements vscode.Disposable, ChatSession {
 
         // Advise local embeddings to start up if necessary.
         void this.localEmbeddings?.start()
-
-        // Advise the remote repo picker to fetch repo IDs if necessary.
-        if (!this.authProvider.getAuthStatus().isDotCom) {
-            this.disposables.push(this.workspaceRepoMapper.onChange(repos => {
-                this.remoteSearch?.setRepos(repos, RepoInclusion.Automatic)
-            }))
-            void this.workspaceRepoMapper.start()
-        }
 
         // Push context status to the webview when it changes.
         this.disposables.push(
@@ -228,7 +212,8 @@ export class SimpleChatPanelProvider implements vscode.Disposable, ChatSession {
         }
         this.codebaseStatusProvider = new CodebaseStatusProvider(
             this.editor,
-            this.config.experimentalSymfContext ? this.symf : null
+            this.config.experimentalSymfContext ? this.symf : null,
+            enterpriseContext ? enterpriseContext.getCodebaseRepoIdMapper() : null
         )
         this.disposables.push(this.contextStatusAggregator.addProvider(this.codebaseStatusProvider))
     }
@@ -291,11 +276,10 @@ export class SimpleChatPanelProvider implements vscode.Disposable, ChatSession {
                 await this.editor.createWorkspaceFile(message.text)
                 break
             case 'context/add-remote-search-repo': {
-                const repos = await this.repoPicker.show()
+                const repos = await this.repoPicker?.show()
                 if (repos) {
-                    // TODO: This is stateful so:
-                    // - The state needs to be persisted and used by new chats.
-                    // - The remote search object should not be shared between chats.
+                    // TODO: Persist selected repositories and use them for
+                    // new chats.
                     this.remoteSearch?.setRepos(repos, RepoInclusion.Manual)
                 }
                 break

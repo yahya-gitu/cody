@@ -1,22 +1,22 @@
 import * as vscode from 'vscode'
 
-import {
-    type ContextGroup,
-    type ContextSearchResult,
-    type ContextStatusProvider,
-    type Disposable,
-    type GraphQLAPIClientConfig,
-    type SourcegraphGraphQLAPIClient,
+import type {
+    ContextGroup,
+    ContextSearchResult,
+    ContextStatusProvider,
+    Disposable,
+    GraphQLAPIClientConfig,
+    SourcegraphGraphQLAPIClient,
 } from '@sourcegraph/cody-shared'
 
-import type * as repopicker from './repo-picker'
+import type * as repofetcher from './repo-fetcher'
 
 export enum RepoInclusion {
     Automatic = 'auto',
     Manual = 'manual',
 }
 
-interface Repo {
+interface DisplayRepo {
     displayName: string
 }
 
@@ -26,10 +26,10 @@ export class RemoteSearch implements ContextStatusProvider {
     private statusChangedEmitter = new vscode.EventEmitter<ContextStatusProvider>()
 
     // Repositories we are including automatically because of the workspace.
-    private reposAuto: Map<string, Repo> = new Map()
+    private reposAuto: Map<string, DisplayRepo> = new Map()
 
     // Repositories the user has added manually.
-    private reposManual: Map<string, Repo> = new Map()
+    private reposManual: Map<string, DisplayRepo> = new Map()
 
     constructor(private readonly client: SourcegraphGraphQLAPIClient) {}
 
@@ -82,8 +82,8 @@ export class RemoteSearch implements ContextStatusProvider {
     // automatically based on the workspace; these are presented differently
     // and can't be removed by the user. RepoInclusion.Manual is for repositories
     // added manually by the user.
-    public setRepos(repos: repopicker.Repo[], inclusion: RepoInclusion): void {
-        const repoMap: Map<string, Repo> = new Map(
+    public setRepos(repos: repofetcher.Repo[], inclusion: RepoInclusion): void {
+        const repoMap: Map<string, DisplayRepo> = new Map(
             repos.map(repo => [repo.id, { displayName: repo.name }])
         )
         switch (inclusion) {

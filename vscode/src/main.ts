@@ -9,7 +9,6 @@ import {
     newPromptMixin,
     PromptMixin,
     setLogger,
-    SourcegraphGraphQLAPIClient,
     type ConfigurationWithAccessToken,
 } from '@sourcegraph/cody-shared'
 
@@ -29,8 +28,6 @@ import { newCodyCommandArgs, type CodyCommandArgs } from './commands'
 import { GhostHintDecorator } from './commands/GhostHintDecorator'
 import { createInlineCompletionItemProvider } from './completions/create-inline-completion-item-provider'
 import { getConfiguration, getFullConfig } from './configuration'
-import { RemoteSearch } from './context/remote-search'
-import { RemoteRepoPicker } from './context/repo-picker'
 import { EditManager } from './edit/manager'
 import { manageDisplayPathEnvInfoForExtension } from './editor/displayPathEnvInfo'
 import { VSCodeEditor } from './editor/vscode-editor'
@@ -50,7 +47,7 @@ import { createOrUpdateEventLogger, telemetryService } from './services/telemetr
 import { createOrUpdateTelemetryRecorderProvider, telemetryRecorder } from './services/telemetry-v2'
 import { onTextDocumentChange } from './services/utils/codeblock-action-tracker'
 import { parseAllVisibleDocuments, updateParseTreeOnEdit } from './tree-sitter/parse-tree-cache'
-import { WorkspaceRepoMapper } from './context/workspace-repo-mapper'
+import { EnterpriseContextFactory } from './context/enterprise-context-factory'
 
 /**
  * Start the extension, watching all relevant configuration and secrets for changes.
@@ -168,11 +165,6 @@ const register = async (
         disposables.push(symfRunner)
     }
 
-    const remoteSearch = new RemoteSearch(new SourcegraphGraphQLAPIClient(initialConfig))
-    if (remoteSearch) {
-        disposables.push(remoteSearch)
-    }
-
     // TODO(dpc): Introduce remoteSearch to ContextProvider for inline edits
     const contextProvider = new ContextProvider(
         initialConfig,
@@ -198,8 +190,8 @@ const register = async (
     // Evaluate a mock feature flag for the purpose of an A/A test. No functionality is affected by this flag.
     await featureFlagProvider.evaluateFeatureFlag(FeatureFlag.CodyChatMockTest)
 
-    const workspaceRepoMapper = new WorkspaceRepoMapper(initialConfig)
-    const repoPicker = new RemoteRepoPicker(initialConfig)
+    const enterpriseContextFactory = new EnterpriseContextFactory(initialConfig)
+    disposables.push(enterpriseContextFactory)
 
     const chatManager = new ChatManager(
         {
@@ -207,11 +199,9 @@ const register = async (
             extensionUri: context.extensionUri,
         },
         chatClient,
-        workspaceRepoMapper,
-        repoPicker,
+        enterpriseContextFactory,
         localEmbeddings || null,
         symfRunner || null,
-        remoteSearch || null,
         guardrails,
         commandsController
     )
@@ -238,9 +228,7 @@ const register = async (
         promises.push(configureEventsInfra(newConfig, isExtensionModeDevOrTest))
         platform.onConfigurationChange?.(newConfig)
         symfRunner?.setSourcegraphAuth(newConfig.serverEndpoint, newConfig.accessToken)
-        repoPicker.updateConfiguration(newConfig)
-        remoteSearch.updateConfiguration(newConfig)
-        workspaceRepoMapper.updateConfiguration(newConfig)
+        enterpriseContextFactory.updateConfiguration(newConfig)
         promises.push(
             localEmbeddings?.setAccessToken(newConfig.serverEndpoint, newConfig.accessToken) ??
                 Promise.resolve()
