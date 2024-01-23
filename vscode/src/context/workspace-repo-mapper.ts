@@ -1,6 +1,7 @@
 import { GraphQLAPIClientConfig, SourcegraphGraphQLAPIClient, isError, logDebug } from '@sourcegraph/cody-shared'
 import * as vscode from 'vscode'
 import { getCodebaseFromWorkspaceUri, gitAPI } from '../repository/repositoryHelpers'
+import { RemoteSearch } from './remote-search'
 
 // TODO(dpc): The vscode.git extension has an arbitrary delay before we can
 // fetch a workspace folder's remote. Switch to cody-engine instead of depending
@@ -93,7 +94,7 @@ export class WorkspaceRepoMapper implements vscode.Disposable {
             // Otherwise we fetch the first 10 repos from the Sourcegraph instance
             return []
         }
-        const ids = await this.client.getRepoIds([...repoNames.values()], 10)
+        const ids = await this.client.getRepoIds([...repoNames.values()], RemoteSearch.MAX_REPO_COUNT)
         if (isError(ids)) {
             throw ids
         }

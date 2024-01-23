@@ -3,6 +3,8 @@ import * as vscode from 'vscode'
 import { SourcegraphGraphQLAPIClient, type GraphQLAPIClientConfig } from '@sourcegraph/cody-shared'
 
 import { logDebug } from '../log'
+import { RemoteSearch } from './remote-search'
+import { WorkspaceRepoMapper } from './workspace-repo-mapper'
 
 export interface Repo {
     name: string
@@ -116,10 +118,11 @@ class RepoFetcher implements vscode.Disposable {
  * A quickpick for choosing a set of repositories from a Sourcegraph instance.
  */
 export class RemoteRepoPicker implements vscode.Disposable {
-    public readonly maxSelectedRepoCount: number = 9
+    private readonly maxSelectedRepoCount: number = RemoteSearch.MAX_REPO_COUNT - 1
     private disposables: vscode.Disposable[] = []
     private readonly quickpick: vscode.QuickPick<vscode.QuickPickItem & Repo>
     private readonly fetcher: RepoFetcher
+    private readonly workspaceRepoMapper: WorkspaceRepoMapper
 
     constructor(config: GraphQLAPIClientConfig) {
         this.fetcher = new RepoFetcher(new SourcegraphGraphQLAPIClient(config))
@@ -136,6 +139,10 @@ export class RemoteRepoPicker implements vscode.Disposable {
             undefined,
             this.disposables
         )
+
+        this.workspaceRepoMapper = new WorkspaceRepoMapper(config)
+        void this.workspaceRepoMapper.start()
+        this.workspaceRepoMapper.onChange(() => this.handleRepoListChanged(), undefined, this.disposables)
 
         this.quickpick = vscode.window.createQuickPick<vscode.QuickPickItem & Repo>()
         this.updateTitle()
@@ -179,6 +186,7 @@ export class RemoteRepoPicker implements vscode.Disposable {
 
     public updateConfiguration(config: GraphQLAPIClientConfig): void {
         this.fetcher.updateConfiguration(config)
+        this.workspaceRepoMapper.updateConfiguration(config)
     }
 
     /**
@@ -231,18 +239,42 @@ export class RemoteRepoPicker implements vscode.Disposable {
 
     private handleRepoListChanged(): void {
         const selected = new Set<string>(this.quickpick.selectedItems.map(item => item.id))
+
+        const workspaceRepos = new Set<string>(this.workspaceRepoMapper.workspaceRepos.map(item => item.id))
+
         const selectedItems: (vscode.QuickPickItem & Repo)[] = []
-        this.quickpick.items = this.fetcher.repositories.map(repo => {
+        const workspaceItems: (vscode.QuickPickItem & Repo)[] = []
+        const items: (vscode.QuickPickItem & Repo)[] = []
+
+        for (const repo of this.fetcher.repositories) {
+            const inWorkspace = workspaceRepos.has(repo.id)
             const item = {
                 label: repo.name,
                 name: repo.name,
                 id: repo.id,
+                description: inWorkspace ? 'In your workspace' : undefined,
+            }
+            if (inWorkspace) {
+                workspaceItems.push(item)
+            } else {
+                items.push(item)
             }
             if (selected.has(repo.id)) {
                 selectedItems.push(item)
             }
-            return item
-        })
+        }
+
+        this.quickpick.items = [{
+            kind: vscode.QuickPickItemKind.Separator,
+            label: 'Repositories in your workspace',
+            name: 'SEPARATOR',
+            id: 'SEPARATOR',
+        }, ...workspaceItems, {
+            kind: vscode.QuickPickItemKind.Separator,
+            label: 'Other repositories on your Sourcegraph instance',
+            name: 'SEPARATOR',
+            id: 'SEPARATOR',
+        }, ...items]
         this.quickpick.selectedItems = selectedItems
     }
 }

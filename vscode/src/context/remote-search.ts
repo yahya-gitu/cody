@@ -21,6 +21,8 @@ interface Repo {
 }
 
 export class RemoteSearch implements ContextStatusProvider {
+    public static readonly MAX_REPO_COUNT = 10
+
     private statusChangedEmitter = new vscode.EventEmitter<ContextStatusProvider>()
 
     // Repositories we are including automatically because of the workspace.
