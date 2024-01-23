@@ -106,6 +106,17 @@ query Repository($name: String!) {
 	}
 }`
 
+export const REPOSITORY_IDS_QUERY = `
+query Repositories($names: [String!]!, $first: Int!) {
+    repositories(names: $names, first: $first) {
+      nodes {
+        name
+        id
+      }
+    }
+  }
+`
+
 export const CONTEXT_SEARCH_QUERY = `
 query GetCodyContext($repos: [ID!]!, $query: String!, $codeResultsCount: Int!, $textResultsCount: Int!) {
 	getCodyContext(repos: $repos, query: $query, codeResultsCount: $codeResultsCount, textResultsCount: $textResultsCount) {

@@ -86,6 +86,7 @@ import {
     type ContextItem,
     type MessageWithContext,
 } from './SimpleChatModel'
+import { WorkspaceRepoMapper } from '../../context/workspace-repo-mapper'
 
 interface SimpleChatPanelProviderOptions {
     config: ChatPanelConfig
@@ -97,6 +98,7 @@ interface SimpleChatPanelProviderOptions {
     remoteSearch: RemoteSearch | null
     editor: VSCodeEditor
     treeView: TreeViewProvider
+    workspaceRepoMapper: WorkspaceRepoMapper,
     repoPicker: RemoteRepoPicker
     featureFlagProvider: FeatureFlagProvider
     models: ChatModelProvider[]
@@ -145,13 +147,16 @@ export class SimpleChatPanelProvider implements vscode.Disposable, ChatSession {
     private readonly codebaseStatusProvider: CodebaseStatusProvider
     private readonly localEmbeddings: LocalEmbeddingsController | null
     private readonly symf: SymfRunner | null
-    private readonly remoteSearch: RemoteSearch | null
     private readonly contextStatusAggregator = new ContextStatusAggregator()
     private readonly editor: VSCodeEditor
     private readonly treeView: TreeViewProvider
     private readonly guardrails: Guardrails
     private readonly commandsController?: CommandsController
+
+    // TODO(dpc): Bundle this enterprise search stuff into one object.
+    private readonly remoteSearch: RemoteSearch | null
     private readonly repoPicker: RemoteRepoPicker
+    private readonly workspaceRepoMapper: WorkspaceRepoMapper
 
     private history = new ChatHistoryManager()
     private contextFilesQueryCancellation?: vscode.CancellationTokenSource
@@ -172,6 +177,7 @@ export class SimpleChatPanelProvider implements vscode.Disposable, ChatSession {
         remoteSearch,
         editor,
         treeView,
+        workspaceRepoMapper,
         repoPicker,
         models,
         commandsController,
@@ -188,6 +194,7 @@ export class SimpleChatPanelProvider implements vscode.Disposable, ChatSession {
         this.editor = editor
         this.treeView = treeView
         this.repoPicker = repoPicker
+        this.workspaceRepoMapper = workspaceRepoMapper
         this.chatModel = new SimpleChatModel(selectModel(authProvider, models))
         this.guardrails = guardrails
 
@@ -199,6 +206,14 @@ export class SimpleChatPanelProvider implements vscode.Disposable, ChatSession {
 
         // Advise local embeddings to start up if necessary.
         void this.localEmbeddings?.start()
+
+        // Advise the remote repo picker to fetch repo IDs if necessary.
+        if (!this.authProvider.getAuthStatus().isDotCom) {
+            this.disposables.push(this.workspaceRepoMapper.onChange(repos => {
+                this.remoteSearch?.setRepos(repos, RepoInclusion.Automatic)
+            }))
+            void this.workspaceRepoMapper.start()
+        }
 
         // Push context status to the webview when it changes.
         this.disposables.push(

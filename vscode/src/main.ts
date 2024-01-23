@@ -50,6 +50,7 @@ import { createOrUpdateEventLogger, telemetryService } from './services/telemetr
 import { createOrUpdateTelemetryRecorderProvider, telemetryRecorder } from './services/telemetry-v2'
 import { onTextDocumentChange } from './services/utils/codeblock-action-tracker'
 import { parseAllVisibleDocuments, updateParseTreeOnEdit } from './tree-sitter/parse-tree-cache'
+import { WorkspaceRepoMapper } from './context/workspace-repo-mapper'
 
 /**
  * Start the extension, watching all relevant configuration and secrets for changes.
@@ -197,15 +198,8 @@ const register = async (
     // Evaluate a mock feature flag for the purpose of an A/A test. No functionality is affected by this flag.
     await featureFlagProvider.evaluateFeatureFlag(FeatureFlag.CodyChatMockTest)
 
-    const item = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 100)
-    item.text = 'DEV Pick Repos'
-    item.command = 'cody.dev-repos'
+    const workspaceRepoMapper = new WorkspaceRepoMapper(initialConfig)
     const repoPicker = new RemoteRepoPicker(initialConfig)
-    vscode.commands.registerCommand('cody.dev-repos', async (): Promise<void> => {
-        const result = await repoPicker.show()
-        console.log(JSON.stringify(result))
-    })
-    item.show()
 
     const chatManager = new ChatManager(
         {
@@ -213,6 +207,7 @@ const register = async (
             extensionUri: context.extensionUri,
         },
         chatClient,
+        workspaceRepoMapper,
         repoPicker,
         localEmbeddings || null,
         symfRunner || null,
@@ -245,6 +240,7 @@ const register = async (
         symfRunner?.setSourcegraphAuth(newConfig.serverEndpoint, newConfig.accessToken)
         repoPicker.updateConfiguration(newConfig)
         remoteSearch.updateConfiguration(newConfig)
+        workspaceRepoMapper.updateConfiguration(newConfig)
         promises.push(
             localEmbeddings?.setAccessToken(newConfig.serverEndpoint, newConfig.accessToken) ??
                 Promise.resolve()

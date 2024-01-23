@@ -26,6 +26,7 @@ import { chatHistory } from './ChatHistoryManager'
 import { CodyChatPanelViewType } from './ChatManager'
 import type { SidebarViewOptions } from './SidebarViewController'
 import { SimpleChatPanelProvider } from './SimpleChatPanelProvider'
+import { WorkspaceRepoMapper } from '../../context/workspace-repo-mapper'
 
 type ChatID = string
 
@@ -40,6 +41,7 @@ export interface ChatViewProviderWebview extends Omit<vscode.Webview, 'postMessa
 
 interface ChatPanelProviderOptions extends MessageProviderOptions {
     extensionUri: vscode.Uri
+    workspaceRepoMapper: WorkspaceRepoMapper,
     repoPicker: RemoteRepoPicker
     treeView: TreeViewProvider
     featureFlagProvider: FeatureFlagProvider
@@ -67,6 +69,7 @@ export class ChatPanelsManager implements vscode.Disposable {
     constructor(
         { extensionUri, ...options }: SidebarViewOptions,
         private chatClient: ChatClient,
+        workspaceRepoMapper: WorkspaceRepoMapper,
         repoPicker: RemoteRepoPicker,
         private readonly localEmbeddings: LocalEmbeddingsController | null,
         private readonly symf: SymfRunner | null,
@@ -77,6 +80,7 @@ export class ChatPanelsManager implements vscode.Disposable {
         logDebug('ChatPanelsManager:constructor', 'init')
         this.options = {
             treeView: this.treeViewProvider,
+            workspaceRepoMapper,
             repoPicker,
             extensionUri,
             featureFlagProvider,

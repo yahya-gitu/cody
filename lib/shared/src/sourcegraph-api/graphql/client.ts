@@ -28,6 +28,7 @@ import {
     LOG_EVENT_MUTATION_DEPRECATED,
     RECORD_TELEMETRY_EVENTS_MUTATION,
     REPOSITORY_ID_QUERY,
+    REPOSITORY_IDS_QUERY,
     REPOSITORY_LIST_QUERY,
     SEARCH_ATTRIBUTION_QUERY,
 } from './queries'
@@ -113,6 +114,12 @@ interface RepoListResponse {
 
 interface RepositoryIdResponse {
     repository: { id: string } | null
+}
+
+interface RepositoryIdsResponse {
+    repositories: {
+        nodes: { name: string, id: string }[]
+    }
 }
 
 interface SearchAttributionResponse {
@@ -433,6 +440,15 @@ export class SourcegraphGraphQLAPIClient {
             name: repoName,
         }).then(response =>
             extractDataOrError(response, data => (data.repository ? data.repository.id : null))
+        )
+    }
+
+    public async getRepoIds(names: string[], first: number): Promise<{name: string, id: string}[] | Error> {
+        return this.fetchSourcegraphAPI<APIResponse<RepositoryIdsResponse>>(REPOSITORY_IDS_QUERY, {
+            names,
+            first,
+        }).then(response =>
+            extractDataOrError(response, data => data.repositories?.nodes || [])
         )
     }
 

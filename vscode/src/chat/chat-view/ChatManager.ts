@@ -28,6 +28,7 @@ import { type AuthStatus } from '../protocol'
 import { ChatPanelsManager } from './ChatPanelsManager'
 import { SidebarViewController, type SidebarViewOptions } from './SidebarViewController'
 import type { ChatSession, SimpleChatPanelProvider } from './SimpleChatPanelProvider'
+import { WorkspaceRepoMapper } from '../../context/workspace-repo-mapper'
 
 export const CodyChatPanelViewType = 'cody.chatPanel'
 /**
@@ -48,6 +49,7 @@ export class ChatManager implements vscode.Disposable {
     constructor(
         { extensionUri, ...options }: SidebarViewOptions,
         private chatClient: ChatClient,
+        workspaceRepoMapper: WorkspaceRepoMapper,
         repoPicker: RemoteRepoPicker,
         private localEmbeddings: LocalEmbeddingsController | null,
         private symf: SymfRunner | null,
@@ -67,6 +69,7 @@ export class ChatManager implements vscode.Disposable {
         this.chatPanelsManager = new ChatPanelsManager(
             this.options,
             this.chatClient,
+            workspaceRepoMapper,
             repoPicker,
             this.localEmbeddings,
             this.symf,
