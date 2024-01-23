@@ -1,9 +1,15 @@
 import { GraphQLAPIClientConfig, SourcegraphGraphQLAPIClient, isError, logDebug } from '@sourcegraph/cody-shared'
 import * as vscode from 'vscode'
-import { getCodebaseFromWorkspaceUri } from '../repository/repositoryHelpers'
+import { getCodebaseFromWorkspaceUri, gitAPI } from '../repository/repositoryHelpers'
+
+// TODO(dpc): The vscode.git extension has an arbitrary delay before we can
+// fetch a workspace folder's remote. Switch to cody-engine instead of depending
+// on vscode.git.
+const GIT_REFRESH_DELAY = 2000
 
 // Watches the VSCode workspace roots and maps any it finds to remote repository
-// IDs.
+// IDs. This depends on the vscode.git extension for mapping git repositories
+// to their remotes.
 export class WorkspaceRepoMapper implements vscode.Disposable {
     private readonly client: SourcegraphGraphQLAPIClient
     private changeEmitter = new vscode.EventEmitter<{name: string, id: string}[]>()
@@ -44,7 +50,14 @@ export class WorkspaceRepoMapper implements vscode.Disposable {
                 this.started = undefined
                 throw error
             }
-            vscode.workspace.onDidChangeWorkspaceFolders(async () => await this.updateRepos(), undefined, this.disposables);
+            vscode.workspace.onDidChangeWorkspaceFolders(async () => {
+                logDebug('WorkspaceRepoMapper', 'Workspace folders changed, updating repos')
+                setTimeout(async () => await this.updateRepos(), GIT_REFRESH_DELAY)
+            }, undefined, this.disposables);
+            gitAPI()?.onDidOpenRepository(async () => {
+                logDebug('WorkspaceRepoMapper', 'vscode.git repositories changed, updating repos')
+                setTimeout(async () => await this.updateRepos(), GIT_REFRESH_DELAY)
+            }, undefined, this.disposables)
         })()
     }
 
@@ -59,7 +72,9 @@ export class WorkspaceRepoMapper implements vscode.Disposable {
     // Updates the `workspaceRepos` property and fires the change event.
     private async updateRepos(): Promise<void> {
         try {
-            this.repos = await this.findRepoIds(vscode.workspace.workspaceFolders || [])
+            const folders = vscode.workspace.workspaceFolders || []
+            logDebug('WorkspaceRepoMapper', 'Mapping ' + folders.length + ' workspace folders to repos: ' + folders.map(f => f.uri.toString()).join())
+            this.repos = await this.findRepoIds(folders)
         } catch (error) {
             logDebug('WorkspaceRepoMapper', 'Error mapping workspace folders to repo IDs: ' + error)
             throw error
@@ -70,11 +85,15 @@ export class WorkspaceRepoMapper implements vscode.Disposable {
     // Given a set of workspace folders, looks up their git remotes and finds the related repo IDs,
     // if any.
     private async findRepoIds(folders: readonly vscode.WorkspaceFolder[]): Promise<{name: string, id: string}[]> {
-        const repoNameFolderMap = new Map(folders.flatMap(folder => {
+        const repoNames = new Set(folders.flatMap(folder => {
             const codebase = getCodebaseFromWorkspaceUri(folder.uri)
-            return codebase ? [[codebase, folder.uri.toString()]] : []
+            return codebase ? [codebase] : []
         }))
-        const ids = await this.client.getRepoIds([...repoNameFolderMap.keys()], 10)
+        if (repoNames.size === 0) {
+            // Otherwise we fetch the first 10 repos from the Sourcegraph instance
+            return []
+        }
+        const ids = await this.client.getRepoIds([...repoNames.values()], 10)
         if (isError(ids)) {
             throw ids
         }

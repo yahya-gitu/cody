@@ -64,10 +64,9 @@ export class RemoteSearch implements ContextStatusProvider {
     // #endregion
 
     public updateConfiguration(newConfig: GraphQLAPIClientConfig): void {
+        // On account changes chat reopens so we do not re-fetch repositories
+        // here.
         this.client.onConfigurationChange(newConfig)
-        // TODO: Work out whether the chat system reopens chats on account
-        // change, and if not, whether we need to clear the repo set, inform the
-        // user, etc.
     }
 
     // Removes a manually included repository.
@@ -85,28 +84,17 @@ export class RemoteSearch implements ContextStatusProvider {
         const repoMap: Map<string, Repo> = new Map(
             repos.map(repo => [repo.id, { displayName: repo.name }])
         )
-        const oldRepoSet = this.getRepoIdSet()
-        let autoSetChanged = false
         switch (inclusion) {
             case RepoInclusion.Automatic: {
-                autoSetChanged =
-                    this.reposAuto.size !== repoMap.size ||
-                    ![...this.reposAuto.keys()].every(key => repoMap.has(key))
                 this.reposAuto = repoMap
                 break
             }
-            case RepoInclusion.Manual:
+            case RepoInclusion.Manual: {
                 this.reposManual = repoMap
                 break
+            }
         }
-        const newRepoSet = this.getRepoIdSet()
-        if (
-            autoSetChanged ||
-            oldRepoSet.size !== newRepoSet.size ||
-            ![...oldRepoSet.values()].every(value => newRepoSet.has(value))
-        ) {
-            this.statusChangedEmitter.fire(this)
-        }
+        this.statusChangedEmitter.fire(this)
     }
 
     // Gets the set of all repositories to search.
