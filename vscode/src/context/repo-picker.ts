@@ -79,7 +79,7 @@ class RepoFetcher implements vscode.Disposable {
     }
 
     private async fetch(): Promise<void> {
-        // TODO: Increase this.
+        // DONOTCOMMIT: Increase this and remove the timeout.
         const numResultsPerQuery = 100
         const client = this.client
         if (this.state === RepoFetcherState.Paused) {
@@ -138,16 +138,17 @@ export class RemoteRepoPicker implements vscode.Disposable {
         )
 
         this.quickpick = vscode.window.createQuickPick<vscode.QuickPickItem & Repo>()
-        this.quickpick.placeholder = `Choose up to ${this.maxSelectedRepoCount} repositories`
+        this.updateTitle()
         this.quickpick.canSelectMany = true
 
         this.quickpick.onDidChangeSelection(
             selection => {
-                if (selection.length > this.maxSelectedRepoCount) {
+                if (selection.length === this.maxSelectedRepoCount + 1) {
                     void vscode.window.showWarningMessage(
                         `You can only select up to ${this.maxSelectedRepoCount} repositories.`
                     )
                 }
+                this.updateTitle()
             },
             undefined,
             this.disposables
@@ -160,6 +161,20 @@ export class RemoteRepoPicker implements vscode.Disposable {
         }
         this.fetcher.dispose()
         this.quickpick.dispose()
+    }
+
+    private updateTitle(): void {
+        const remaining = this.maxSelectedRepoCount - this.quickpick.selectedItems.length
+        this.quickpick.placeholder = remaining === 0 ? 'Click OK to continue' : 'Type to search repositories...'
+        if (remaining === 0) {
+            this.quickpick.title = '✅ Choose repositories'
+        } else if (remaining === 1) {
+            this.quickpick.title = `✨ Choose the last repository`
+        } else if (remaining > 0) {
+            this.quickpick.title = `Choose up to ${remaining} more repositories`
+        } else {
+            this.quickpick.title = `❌ Too many repositories selected: Uncheck ${-remaining} to continue`
+        }
     }
 
     public updateConfiguration(config: GraphQLAPIClientConfig): void {
