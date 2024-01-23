@@ -286,8 +286,7 @@ export class SimpleChatPanelProvider implements vscode.Disposable, ChatSession {
                 break
             }
             case 'context/remove-remote-search-repo':
-                // TODO: Implement this.
-                void vscode.window.showWarningMessage('Removing repo not yet implemented')
+                this.remoteSearch?.removeRepo(message.repoId)
                 break
             case 'embeddings/index':
                 void this.localEmbeddings?.index()

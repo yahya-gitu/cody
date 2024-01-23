@@ -70,6 +70,13 @@ export class RemoteSearch implements ContextStatusProvider {
         // user, etc.
     }
 
+    // Removes a manually included repository.
+    public removeRepo(repoId: string): void {
+        if (this.reposManual.delete(repoId)) {
+            this.statusChangedEmitter.fire(this)
+        }
+    }
+
     // Sets the repos to search. RepoInclusion.Automatic is for repositories added
     // automatically based on the workspace; these are presented differently
     // and can't be removed by the user. RepoInclusion.Manual is for repositories
