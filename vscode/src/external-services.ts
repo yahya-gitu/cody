@@ -71,8 +71,7 @@ export async function configureExternalServices(
         completionsClient
     )
 
-    const repoId = initialConfig.codebase ? await graphqlClient.getRepoId(initialConfig.codebase) : null
-    if (isError(repoId)) {
+    if (initialConfig.codebase && isError(await graphqlClient.getRepoId(initialConfig.codebase))) {
         logDebug(
             'external-services:configureExternalServices',
             `Cody could not find the '${initialConfig.codebase}' repository on your Sourcegraph instance.\nPlease check that the repository exists. You can override the repository with the "cody.codebase" setting.`

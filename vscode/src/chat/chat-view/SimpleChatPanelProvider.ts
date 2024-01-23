@@ -207,15 +207,35 @@ export class SimpleChatPanelProvider implements vscode.Disposable, ChatSession {
         if (this.localEmbeddings) {
             this.disposables.push(this.contextStatusAggregator.addProvider(this.localEmbeddings))
         }
-        if (this.remoteSearch) {
-            this.disposables.push(this.contextStatusAggregator.addProvider(this.remoteSearch))
-        }
         this.codebaseStatusProvider = new CodebaseStatusProvider(
             this.editor,
             this.config.experimentalSymfContext ? this.symf : null,
             enterpriseContext ? enterpriseContext.getCodebaseRepoIdMapper() : null
         )
         this.disposables.push(this.contextStatusAggregator.addProvider(this.codebaseStatusProvider))
+
+        if (this.remoteSearch) {
+            this.disposables.push(
+                // Display enhanced context status from the remote search provider
+                this.contextStatusAggregator.addProvider(this.remoteSearch),
+
+                // When the codebase has a remote ID, include it automatically
+                this.codebaseStatusProvider.onDidChangeStatus(async () => {
+                    const codebase = await this.codebaseStatusProvider.currentCodebase()
+                    if (codebase?.remote && codebase.remoteRepoId) {
+                        this.remoteSearch?.setRepos(
+                            [
+                                {
+                                    name: codebase.remote,
+                                    id: codebase.remoteRepoId,
+                                },
+                            ],
+                            RepoInclusion.Automatic
+                        )
+                    }
+                })
+            )
+        }
     }
 
     /**
