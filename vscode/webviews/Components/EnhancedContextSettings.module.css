@@ -26,8 +26,31 @@
     display: block;
 }
 
-.folders-list {
+.folders-list, .enterprise-repo-list {
     margin: 1rem 0 0.25rem;
+}
+
+.enterprise-repo-list h1 {
+    text-transform: uppercase;
+    font-weight: 500;
+    font-size: inherit;
+}
+
+.enterprise-repo-list-item {
+    display: flex;
+    gap: 0.4em;
+    align-items: center;
+    margin: 0.5rem 0;
+}
+
+.enterprise-repo-list-item .repo-name {
+    flex: 1
+}
+
+.enterprise-repo-list-item button {
+    background: transparent;
+    border: none;
+    color: inherit;
 }
 
 .folders-list > dt {
@@ -176,7 +199,8 @@
         transform: scale(300%);
         opacity: 0;
     }
-    to {
+
+    100% {
         transform: scale(300%);
         opacity: 0;
     }

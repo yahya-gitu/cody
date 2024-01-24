@@ -103,27 +103,19 @@ const CompactGroupsComponent: React.FunctionComponent<{
     })
 
     return (
-        <>
-            <dt title="Repositories" className={styles.lineBreakAll}>
-                Repositories
-            </dt>
-            <dd>
-                <ol className={styles.providersList}>
-                    {liftedProviders.map(([group, provider]) => (
-                        <CompactProviderComponent
-                            key={provider.id}
-                            id={provider.id}
-                            name={group}
-                            inclusion={provider.inclusion}
-                            handleRemove={handleRemove}
-                        />
-                    ))}
-                    <li>
-                        <VSCodeButton onClick={() => handleAdd()}>Add Repositories&hellip;</VSCodeButton>
-                    </li>
-                </ol>
-            </dd>
-        </>
+        <div className={styles.enterpriseRepoList}>
+            <h1>Repositories</h1>
+            {liftedProviders.map(([group, provider]) => (
+                <CompactProviderComponent
+                    key={provider.id}
+                    id={provider.id}
+                    name={group}
+                    inclusion={provider.inclusion}
+                    handleRemove={handleRemove}
+                />
+            ))}
+            <VSCodeButton onClick={() => handleAdd()}>Add Repositories&hellip;</VSCodeButton>
+        </div>
     )
 }
 
@@ -133,8 +125,9 @@ const CompactProviderComponent: React.FunctionComponent<{
     inclusion: 'auto' | 'manual'
     handleRemove: (id: string) => void
 }> = ({ id, name, inclusion, handleRemove }): React.ReactNode => (
-    <li>
-        <i className="codicon codicon-repo-forked" /> {name}{' '}
+    <div className={styles.enterpriseRepoListItem}>
+        <i className="codicon codicon-repo-forked" />
+        <span className={styles.repoName}>{name}</span>
         {inclusion === 'auto' ? (
             // TODO(dpc): The info icon and close button should be right-aligned in a grid, etc.
             <i className="codicon codicon-info" title="Included automatically based on your workspace" />
@@ -143,7 +136,7 @@ const CompactProviderComponent: React.FunctionComponent<{
                 <i className="codicon codicon-close" />
             </button>
         )}
-    </li>
+    </div>
 )
 
 const ContextGroupComponent: React.FunctionComponent<{
@@ -410,13 +403,11 @@ export const EnhancedContextSettings: React.FunctionComponent<EnhancedContextSet
                                 ))}
                             </dl>
                         ) : (
-                            <dl className={styles.foldersList}>
-                                <CompactGroupsComponent
-                                    groups={context.groups}
-                                    handleAdd={handleAddRemoteSearchRepo}
-                                    handleRemove={handleRemoveRemoteSearchRepo}
-                                />
-                            </dl>
+                            <CompactGroupsComponent
+                                groups={context.groups}
+                                handleAdd={handleAddRemoteSearchRepo}
+                                handleRemove={handleRemoveRemoteSearchRepo}
+                            />
                         )}
                     </div>
                 </div>
