@@ -296,16 +296,11 @@ export class SimpleChatPanelProvider implements vscode.Disposable, ChatSession {
                 await this.editor.createWorkspaceFile(message.text)
                 break
             case 'context/add-remote-search-repo': {
-                const repos = await this.repoPicker?.show()
-                if (repos) {
-                    // TODO: Persist selected repositories and use them for
-                    // new chats.
-                    this.remoteSearch?.setRepos(repos, RepoInclusion.Manual)
-                }
+                void this.handleAddRemoteSearchRepo()
                 break
             }
             case 'context/remove-remote-search-repo':
-                this.remoteSearch?.removeRepo(message.repoId)
+                void this.handleRemoveRemoteSearchRepo(message.repoId)
                 break
             case 'embeddings/index':
                 void this.localEmbeddings?.index()
@@ -658,6 +653,19 @@ export class SimpleChatPanelProvider implements vscode.Disposable, ChatSession {
                 error: `${error}`,
             })
         }
+    }
+
+    private async handleAddRemoteSearchRepo(): Promise<void> {
+        const repos = await this.repoPicker?.show()
+        if (repos) {
+            // TODO: Persist selected repositories and use them for
+            // new chats.
+            this.remoteSearch?.setRepos(repos, RepoInclusion.Manual)
+        }
+    }
+
+    private handleRemoveRemoteSearchRepo(repoId: string): void {
+        this.remoteSearch?.removeRepo(repoId)
     }
 
     // #endregion
