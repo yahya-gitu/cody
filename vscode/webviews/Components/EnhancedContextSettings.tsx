@@ -124,28 +124,32 @@ const CompactProviderComponent: React.FunctionComponent<{
     name: string
     inclusion: 'auto' | 'manual'
     handleRemove: (id: string) => void
-}> = ({ id, name, inclusion, handleRemove }): React.ReactNode => (
-    <div className={styles.enterpriseRepoListItem}>
-        <i className="codicon codicon-repo-forked" />
-        <span className={styles.repoName}>{name}</span>
-        {inclusion === 'auto' ? (
-            // TODO(dpc): The info icon and close button should be right-aligned in a grid, etc.
-            <i
-                className={classNames('codicon', 'codicon-info', styles.infoClose)}
-                title="Included automatically based on your workspace"
-            />
-        ) : (
-            <button
-                className={styles.infoClose}
-                onClick={() => handleRemove(id)}
-                type="button"
-                title="Remove"
-            >
-                <i className="codicon codicon-close" />
-            </button>
-        )}
-    </div>
-)
+}> = ({ id, name, inclusion, handleRemove }): React.ReactNode => {
+    const shortName = name.slice(name.lastIndexOf('/') + 1)
+    return (
+        <div className={styles.enterpriseRepoListItem}>
+            <i className="codicon codicon-repo-forked" />
+            <span className={styles.repoName} title={name}>
+                {shortName}
+            </span>
+            {inclusion === 'auto' ? (
+                <i
+                    className={classNames('codicon', 'codicon-info', styles.infoClose)}
+                    title="Included automatically based on your workspace"
+                />
+            ) : (
+                <button
+                    className={styles.infoClose}
+                    onClick={() => handleRemove(id)}
+                    type="button"
+                    title="Remove"
+                >
+                    <i className="codicon codicon-close" />
+                </button>
+            )}
+        </div>
+    )
+}
 
 const ContextGroupComponent: React.FunctionComponent<{
     group: ContextGroup
