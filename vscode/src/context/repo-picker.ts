@@ -70,10 +70,15 @@ export class RemoteRepoPicker implements vscode.Disposable {
         }
     }
 
-    /**
-     * Shows the remote repo picker. Resolves with `undefined` if the user
-     * dismissed the dialog with ESC, a click away, etc.
-     */
+    // Gets a set of default repositories to search if none were specified.
+    public async getDefaultRepos(): Promise<Repo[]> {
+        await this.workspaceRepoMapper.start()
+        // Take up to the first N repos from the workspace.
+        return this.workspaceRepoMapper.workspaceRepos.slice(0, this.maxSelectedRepoCount)
+    }
+
+    // Shows the remote repo picker. Resolves with `undefined` if the user
+    // dismissed the dialog with ESC, a click away, etc.
     public show(selection: Repo[]): Promise<Repo[] | undefined> {
         logDebug('RepoPicker', 'showing; fetcher state =', this.fetcher.state)
 

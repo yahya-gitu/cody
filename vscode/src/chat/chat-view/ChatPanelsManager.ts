@@ -166,6 +166,8 @@ export class ChatPanelsManager implements vscode.Disposable {
         const provider = this.createProvider()
         if (chatID) {
             await provider.restoreSession(chatID)
+        } else {
+            await provider.newSession()
         }
         // Revives a chat panel provider for a given webview panel and session ID.
         // Restores any existing session data. Registers handlers for view state changes and dispose events.

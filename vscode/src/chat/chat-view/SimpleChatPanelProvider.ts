@@ -661,8 +661,7 @@ export class SimpleChatPanelProvider implements vscode.Disposable, ChatSession {
         }
         const repos = await this.repoPicker?.show(this.remoteSearch.getRepos(RepoInclusion.Manual))
         if (repos) {
-            // TODO: Persist selected repositories and use them for
-            // new chats.
+            this.chatModel.setSelectedRepos(repos)
             this.remoteSearch.setRepos(repos, RepoInclusion.Manual)
         }
     }
@@ -982,6 +981,17 @@ export class SimpleChatPanelProvider implements vscode.Disposable, ChatSession {
         return this.chatModel.sessionID
     }
 
+    // Sets the provider up for a new chat that is not being restored from a
+    // saved session.
+    public async newSession(): Promise<void> {
+        // Set the remote search's selected repos to the workspace repo list
+        // by default.
+        this.remoteSearch?.setRepos(
+            (await this.repoPicker?.getDefaultRepos()) || [],
+            RepoInclusion.Manual
+        )
+    }
+
     // Attempts to restore the chat to the given sessionID, if it exists in
     // history. If it does, then saves the current session and cancels the
     // current in-progress completion. If the chat does not exist, then this
@@ -989,11 +999,18 @@ export class SimpleChatPanelProvider implements vscode.Disposable, ChatSession {
     public async restoreSession(sessionID: string): Promise<void> {
         const oldTranscript = this.history.getChat(this.authProvider.getAuthStatus(), sessionID)
         if (!oldTranscript) {
-            return
+            return this.newSession()
         }
         this.cancelInProgressCompletion()
         const newModel = await newChatModelfromTranscriptJSON(oldTranscript, this.chatModel.modelID)
         this.chatModel = newModel
+
+        // Restore per-chat enhanced context settings
+        if (this.remoteSearch) {
+            const repos =
+                this.chatModel.getSelectedRepos() || (await this.repoPicker?.getDefaultRepos()) || []
+            this.remoteSearch.setRepos(repos, RepoInclusion.Manual)
+        }
 
         this.postViewTranscript()
     }
@@ -1205,7 +1222,8 @@ async function newChatModelfromTranscriptJSON(
         json.chatModel || modelID,
         (await Promise.all(messages)).flat(),
         json.id,
-        json.chatTitle
+        json.chatTitle,
+        json.enhancedContext?.selectedRepos
     )
 }
 
