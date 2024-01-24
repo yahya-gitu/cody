@@ -411,13 +411,11 @@ export const EnhancedContextSettings: React.FunctionComponent<EnhancedContextSet
                             </dl>
                         ) : (
                             <dl className={styles.foldersList}>
-                                {context.groups.map(group => (
-                                    <ContextGroupComponent
-                                        key={group.displayName}
-                                        group={group}
-                                        allGroups={context.groups}
-                                    />
-                                ))}
+                                <CompactGroupsComponent
+                                    groups={context.groups}
+                                    handleAdd={handleAddRemoteSearchRepo}
+                                    handleRemove={handleRemoveRemoteSearchRepo}
+                                />
                             </dl>
                         )}
                     </div>
