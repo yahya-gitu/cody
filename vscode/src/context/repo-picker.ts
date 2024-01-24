@@ -10,6 +10,7 @@ export class RemoteRepoPicker implements vscode.Disposable {
     private readonly maxSelectedRepoCount: number = RemoteSearch.MAX_REPO_COUNT - 1
     private disposables: vscode.Disposable[] = []
     private readonly quickpick: vscode.QuickPick<vscode.QuickPickItem & Repo>
+    private prefetchedRepos: Map<string, Repo> = new Map()
 
     constructor(
         private readonly fetcher: RepoFetcher,
@@ -72,12 +73,27 @@ export class RemoteRepoPicker implements vscode.Disposable {
      * Shows the remote repo picker. Resolves with `undefined` if the user
      * dismissed the dialog with ESC, a click away, etc.
      */
-    public show(): Promise<Repo[] | undefined> {
+    public show(selection: Repo[]): Promise<Repo[] | undefined> {
         logDebug('RepoPicker', 'showing; fetcher state =', this.fetcher.state)
+
         let onDone = { resolve: (_: Repo[] | undefined) => {}, reject: (error: Error) => {} }
         const promise = new Promise<Repo[] | undefined>((resolve, reject) => {
             onDone = { resolve, reject }
         })
+
+        // Store the repos selected by default so we can display them even if
+        // they have not been loaded by the RepoFetcher yet.
+        this.prefetchedRepos = new Map(
+            selection.map(repo => [repo.id, { id: repo.id, name: repo.name }])
+        )
+
+        // Set the initial selection to the default selection.
+        this.quickpick.selectedItems = this.quickpick.items = selection.map(repo => ({
+            id: repo.id,
+            label: repo.name,
+            name: repo.name,
+        }))
+        this.handleRepoListChanged()
 
         // Ensure the workspace folder -> repository mapper has started so
         // the user can choose repositories from their workspace from a short
@@ -85,10 +101,6 @@ export class RemoteRepoPicker implements vscode.Disposable {
         void this.workspaceRepoMapper.start()
         const workspaceChange = this.workspaceRepoMapper.onChange(() => this.handleRepoListChanged())
         void promise.finally(() => workspaceChange.dispose())
-
-        // TODO: Set the default list of selected items.
-        this.quickpick.selectedItems = []
-        this.handleRepoListChanged()
 
         // Refresh the repo list.
         if (this.fetcher.state !== RepoFetcherState.Complete) {
@@ -135,7 +147,14 @@ export class RemoteRepoPicker implements vscode.Disposable {
         const workspaceItems: (vscode.QuickPickItem & Repo)[] = []
         const items: (vscode.QuickPickItem & Repo)[] = []
 
-        for (const repo of this.fetcher.repositories) {
+        const displayedRepos = new Set<string>()
+        for (const repo of [...this.fetcher.repositories, ...this.prefetchedRepos.values()]) {
+            if (displayedRepos.has(repo.id)) {
+                // De-dup prefetched and fetcher repos.
+                continue
+            }
+            displayedRepos.add(repo.id)
+
             const inWorkspace = workspaceRepos.has(repo.id)
             const item = {
                 label: repo.name,

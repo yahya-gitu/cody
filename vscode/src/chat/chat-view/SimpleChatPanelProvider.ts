@@ -656,11 +656,14 @@ export class SimpleChatPanelProvider implements vscode.Disposable, ChatSession {
     }
 
     private async handleAddRemoteSearchRepo(): Promise<void> {
-        const repos = await this.repoPicker?.show()
+        if (!this.remoteSearch) {
+            return
+        }
+        const repos = await this.repoPicker?.show(this.remoteSearch.getRepos(RepoInclusion.Manual))
         if (repos) {
             // TODO: Persist selected repositories and use them for
             // new chats.
-            this.remoteSearch?.setRepos(repos, RepoInclusion.Manual)
+            this.remoteSearch.setRepos(repos, RepoInclusion.Manual)
         }
     }
 

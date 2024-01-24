@@ -99,6 +99,12 @@ export class RemoteSearch implements ContextStatusProvider {
         this.statusChangedEmitter.fire(this)
     }
 
+    public getRepos(inclusion: RepoInclusion): repofetcher.Repo[] {
+        return [
+            ...(inclusion === RepoInclusion.Automatic ? this.reposAuto : this.reposManual).entries(),
+        ].map(([id, repo]) => ({ id, name: repo.displayName }))
+    }
+
     // Gets the set of all repositories to search.
     public getRepoIdSet(): Set<string> {
         return new Set([...this.reposAuto.keys(), ...this.reposManual.keys()])

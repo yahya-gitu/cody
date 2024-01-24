@@ -21,7 +21,7 @@ import { logDebug, logError } from '../../log'
 import { viewRangeToRange } from './chat-helpers'
 import type { CodebaseStatusProvider } from './CodebaseStatusProvider'
 import type { ContextItem } from './SimpleChatModel'
-import { RemoteSearch } from '../../context/remote-search'
+import type { RemoteSearch } from '../../context/remote-search'
 
 const isAgentTesting = process.env.CODY_SHIM_TESTING === 'true'
 
@@ -63,7 +63,7 @@ export async function getEnhancedContext(
         logDebug('SimpleChatPanelProvider', 'getEnhancedContext > search')
         if (remoteSearch) {
             try {
-                searchContext.push(...await searchRemote(remoteSearch, text))
+                searchContext.push(...(await searchRemote(remoteSearch, text)))
             } catch (error) {
                 // TODO: Error reporting
                 logDebug('SimpleChatPanelProvider.getEnhancedContext', 'remote search error', error)
@@ -108,7 +108,10 @@ export async function getEnhancedContext(
     return priorityContext.concat(searchContext)
 }
 
-async function searchRemote(remoteSearch: RemoteSearch | null, userText: string): Promise<ContextItem[]> {
+async function searchRemote(
+    remoteSearch: RemoteSearch | null,
+    userText: string
+): Promise<ContextItem[]> {
     if (!remoteSearch) {
         return []
     }
