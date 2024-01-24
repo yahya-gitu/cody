@@ -67,6 +67,11 @@ function useEnhancedContextEventHandlers(): EnhancedContextEventHandlersT {
     return React.useContext(EnhancedContextEventHandlers)
 }
 
+// Shortens a repository name into a more succinct--but ambiguous--display name.
+function briefName(name: string): string {
+    return name.slice(name.lastIndexOf('/') + 1)
+}
+
 const CompactGroupsComponent: React.FunctionComponent<{
     groups: readonly ContextGroup[]
     handleAdd: () => void
@@ -99,21 +104,25 @@ const CompactGroupsComponent: React.FunctionComponent<{
         if (b[1].inclusion === 'auto') {
             return 1
         }
-        return a[0].localeCompare(b[0])
+        return briefName(a[0]).localeCompare(briefName(b[0]))
     })
 
     return (
         <div className={styles.enterpriseRepoList}>
             <h1>Repositories</h1>
-            {liftedProviders.map(([group, provider]) => (
-                <CompactProviderComponent
-                    key={provider.id}
-                    id={provider.id}
-                    name={group}
-                    inclusion={provider.inclusion}
-                    handleRemove={handleRemove}
-                />
-            ))}
+            {liftedProviders.length === 0 ? (
+                <p className={styles.noReposMessage}>No repositories selected</p>
+            ) : (
+                liftedProviders.map(([group, provider]) => (
+                    <CompactProviderComponent
+                        key={provider.id}
+                        id={provider.id}
+                        name={group}
+                        inclusion={provider.inclusion}
+                        handleRemove={handleRemove}
+                    />
+                ))
+            )}
             <VSCodeButton onClick={() => handleAdd()}>Add Repositories&hellip;</VSCodeButton>
         </div>
     )
@@ -125,12 +134,11 @@ const CompactProviderComponent: React.FunctionComponent<{
     inclusion: 'auto' | 'manual'
     handleRemove: (id: string) => void
 }> = ({ id, name, inclusion, handleRemove }): React.ReactNode => {
-    const shortName = name.slice(name.lastIndexOf('/') + 1)
     return (
         <div className={styles.enterpriseRepoListItem}>
             <i className="codicon codicon-repo-forked" />
             <span className={styles.repoName} title={name}>
-                {shortName}
+                {briefName(name)}
             </span>
             {inclusion === 'auto' ? (
                 <i

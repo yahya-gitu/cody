@@ -57,6 +57,12 @@
     cursor: pointer;
 }
 
+.no-repos-message {
+    display: block;
+    text-align: center;
+    padding: 1em;
+}
+
 .folders-list > dt {
     display: flex;
     gap: 0.4rem;
