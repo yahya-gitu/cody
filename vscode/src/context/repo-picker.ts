@@ -31,8 +31,9 @@ export class RemoteRepoPicker implements vscode.Disposable {
         )
 
         this.quickpick = vscode.window.createQuickPick<vscode.QuickPickItem & Repo>()
-        this.updateTitle()
+        this.quickpick.matchOnDetail = true
         this.quickpick.canSelectMany = true
+        this.updateTitle()
 
         this.quickpick.onDidChangeSelection(
             selection => {
@@ -156,11 +157,13 @@ export class RemoteRepoPicker implements vscode.Disposable {
             displayedRepos.add(repo.id)
 
             const inWorkspace = workspaceRepos.has(repo.id)
+            const shortName = repo.name.slice(repo.name.lastIndexOf('/') + 1)
             const item = {
-                label: repo.name,
+                label: shortName,
                 name: repo.name,
                 id: repo.id,
-                description: inWorkspace ? 'In your workspace' : undefined,
+                description: inWorkspace ? 'In your workspace' : '',
+                detail: repo.name,
             }
             if (inWorkspace) {
                 workspaceItems.push(item)
