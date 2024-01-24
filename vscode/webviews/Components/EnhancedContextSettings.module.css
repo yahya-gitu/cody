@@ -38,9 +38,12 @@
 
 .enterprise-repo-list-item {
     display: flex;
-    gap: 0.4em;
     align-items: center;
     margin: 0.5rem 0;
+}
+
+.enterprise-repo-list-item .info-close {
+    flex: 0 1em;
 }
 
 .enterprise-repo-list-item .repo-name {
@@ -51,6 +54,7 @@
     background: transparent;
     border: none;
     color: inherit;
+    cursor: pointer;
 }
 
 .folders-list > dt {

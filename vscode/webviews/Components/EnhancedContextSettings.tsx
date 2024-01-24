@@ -130,9 +130,17 @@ const CompactProviderComponent: React.FunctionComponent<{
         <span className={styles.repoName}>{name}</span>
         {inclusion === 'auto' ? (
             // TODO(dpc): The info icon and close button should be right-aligned in a grid, etc.
-            <i className="codicon codicon-info" title="Included automatically based on your workspace" />
+            <i
+                className={classNames('codicon', 'codicon-info', styles.infoClose)}
+                title="Included automatically based on your workspace"
+            />
         ) : (
-            <button onClick={() => handleRemove(id)} type="button" title="Remove">
+            <button
+                className={styles.infoClose}
+                onClick={() => handleRemove(id)}
+                type="button"
+                title="Remove"
+            >
                 <i className="codicon codicon-close" />
             </button>
         )}
