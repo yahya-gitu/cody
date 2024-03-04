@@ -31,6 +31,10 @@ import { type Diff, computeDiff } from './diff'
 import type { FixupFileCollection, FixupIdleTaskRunner, FixupTextChanged } from './roles'
 import { CodyTaskState, getMinimumDistanceToRangeBoundary } from './utils'
 
+// TODO: Add a role interface for responding to state transitions with code lenses
+
+// TODO: Change task state enum to use strings instead of numbers, the numbers are inscrutable.
+
 // This class acts as the factory for Fixup Tasks and handles communication between the Tree View and editor
 export class FixupController
     implements FixupFileCollection, FixupIdleTaskRunner, FixupTextChanged, vscode.Disposable
@@ -40,6 +44,8 @@ export class FixupController
     private readonly editObserver: FixupDocumentEditObserver
     // TODO: Make the fixup scheduler use a cooldown timer with a longer delay
     private readonly scheduler = new FixupScheduler(10)
+    // TODO: Add clientInfo.capabilities : ClientCapabilities for edit decorations
+    // TODO: Predicate constructing this on client capabilities for decorations
     private readonly decorator = new FixupDecorator()
     private readonly codelenses = new FixupCodeLenses(this)
     private readonly contentStore = new ContentProvider()
@@ -50,6 +56,7 @@ export class FixupController
         // Register commands
         this._disposables.push(
             vscode.workspace.registerTextDocumentContentProvider('cody-fixup', this.contentStore),
+            // TODO: Agent commands will also want to call these telemetry callbacks.
             vscode.commands.registerCommand('cody.fixup.codelens.cancel', id => {
                 telemetryService.log('CodyVSCodeExtension:fixup:codeLens:clicked', {
                     op: 'cancel',

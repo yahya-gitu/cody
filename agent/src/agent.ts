@@ -197,6 +197,7 @@ export class Agent extends MessageHandler {
 
     public webPanels = new AgentWebviewPanels()
 
+    // TODO(dpc): Provide "a clean API" to FixupController.tasks.
     // A map that mirrors `FixupController.tasks`. There's no clean API to
     // access `FixupController` so we mirror it here instead. It would be nice
     // to clean this up in the future so we have only a single source of truth
