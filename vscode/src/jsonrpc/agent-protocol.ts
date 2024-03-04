@@ -75,6 +75,18 @@ export type ClientRequests = {
     // Trigger commands that edit the code.
     'editCommands/test': [null, EditTask]
     'commands/document': [null, EditTask] // TODO: rename to editCommands/test
+    // TODO: Implement
+    // Commit an edit. This may fail if Cody's edits conflict with the buffer.
+    'editCommands/apply': [string, null]
+    // TODO: Implement
+    // Retry a command. This is the way to recover from editor conflicts.
+    'editCommands/retry': [string, null]
+    // TODO: Implement
+    // Give up and drop tracking an edit task.
+    'editCommands/cancel': [string, null]
+    // TODO: Implement
+    // Gets the edit tasks near the specified range.
+    'editCommands/near': [{ uri; Range }, EditTask[]]
 
     // Low-level API to trigger a VS Code command with any argument list. Avoid
     // using this API in favor of high-level wrappers like 'chat/new'.
@@ -243,7 +255,12 @@ export type ClientNotifications = {
 export type ServerNotifications = {
     'debug/message': [DebugMessage]
 
+    // TODO: Fire this event for the terminal states, too.
     'editTaskState/didChange': [EditTask]
+    // Edit tasks track edits around the range Cody is editing, and lazily
+    // produce updated task ranges and diffs.
+    // TODO: Implement this.
+    'editTaskState/didUpdateDiff': [EditTask]
     'codeLenses/display': [DisplayCodeLensParams]
 
     // Low-level webview notification for the given chat session ID (created via
@@ -327,7 +344,10 @@ interface ClientCapabilities {
     untitledDocuments?: 'none' | 'enabled'
     showDocument?: 'none' | 'enabled'
     codeLenses?: 'none' | 'enabled'
+    // Whether to use code lenses for 'edit' and 'document'
+    editControls?: 'none' | 'lenses'
     showWindowMessage?: 'notification' | 'request'
+    decorations?: 'none' | 'enabled'
 }
 
 export interface ServerInfo {

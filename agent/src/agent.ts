@@ -45,6 +45,7 @@ import { AgentGlobalState } from './AgentGlobalState'
 import { AgentWebviewPanel, AgentWebviewPanels } from './AgentWebviewPanel'
 import { AgentWorkspaceDocuments } from './AgentWorkspaceDocuments'
 import type { PollyRequestError } from './cli/jsonrpc'
+import { ClientSettings, initClientSettings } from './client-settings'
 import { MessageHandler, type RequestCallback, type RequestMethodName } from './jsonrpc-alias'
 import type {
     AutocompleteItem,
@@ -261,8 +262,20 @@ export class Agent extends MessageHandler {
                 )
             }
 
+            const clientSettings: ClientSettings = {
+                editControls:
+                    clientInfo.capabilities?.codeLenses === 'enabled' &&
+                    clientInfo.capabilities?.editControls === 'lenses'
+                        ? 'lenses'
+                        : 'none',
+                editDecorations:
+                    clientInfo.capabilities?.decorations === 'enabled' ? 'characterLevelDiff' : 'none',
+            }
+            initClientSettings(clientSettings)
+
             vscode_shim.setClientInfo(clientInfo)
             this.clientInfo = clientInfo
+
             setUserAgent(`${clientInfo?.name} / ${clientInfo?.version}`)
 
             this.agentTelemetryRecorderProvider?.unsubscribe()

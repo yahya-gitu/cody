@@ -19,21 +19,19 @@ import { getEditorInsertSpaces, getEditorTabSize } from '../utils'
 import { getInput } from '../edit/input/get-input'
 import type { AuthProvider } from '../services/AuthProvider'
 import { ContentProvider } from './FixupContentStore'
-import { FixupDecorator } from './FixupDecorator'
+import { createFixupDecorator } from './FixupDecorator'
 import { FixupDocumentEditObserver } from './FixupDocumentEditObserver'
 import type { FixupFile } from './FixupFile'
 import { FixupFileObserver } from './FixupFileObserver'
 import { FixupScheduler } from './FixupScheduler'
 import { FixupTask, type taskID } from './FixupTask'
 import { ACTIONABLE_TASK_STATES, CANCELABLE_TASK_STATES } from './codelenses/constants'
-import { FixupCodeLenses } from './codelenses/provider'
+import { createFixupControls } from './codelenses/provider'
 import { type Diff, computeDiff } from './diff'
 import type { FixupFileCollection, FixupIdleTaskRunner, FixupTextChanged } from './roles'
 import { CodyTaskState, getMinimumDistanceToRangeBoundary } from './utils'
 
 // TODO: Add a role interface for responding to state transitions with code lenses
-
-// TODO: Change task state enum to use strings instead of numbers, the numbers are inscrutable.
 
 // This class acts as the factory for Fixup Tasks and handles communication between the Tree View and editor
 export class FixupController
@@ -44,10 +42,8 @@ export class FixupController
     private readonly editObserver: FixupDocumentEditObserver
     // TODO: Make the fixup scheduler use a cooldown timer with a longer delay
     private readonly scheduler = new FixupScheduler(10)
-    // TODO: Add clientInfo.capabilities : ClientCapabilities for edit decorations
-    // TODO: Predicate constructing this on client capabilities for decorations
-    private readonly decorator = new FixupDecorator()
-    private readonly codelenses = new FixupCodeLenses(this)
+    private readonly decorator = createFixupDecorator()
+    private readonly controls = createFixupControls(this)
     private readonly contentStore = new ContentProvider()
 
     private _disposables: vscode.Disposable[] = []
@@ -55,92 +51,7 @@ export class FixupController
     constructor(private readonly authProvider: AuthProvider) {
         // Register commands
         this._disposables.push(
-            vscode.workspace.registerTextDocumentContentProvider('cody-fixup', this.contentStore),
-            // TODO: Agent commands will also want to call these telemetry callbacks.
-            vscode.commands.registerCommand('cody.fixup.codelens.cancel', id => {
-                telemetryService.log('CodyVSCodeExtension:fixup:codeLens:clicked', {
-                    op: 'cancel',
-                    hasV2Event: true,
-                })
-                telemetryRecorder.recordEvent('cody.fixup.codeLens', 'cancel')
-                return this.cancel(id)
-            }),
-            vscode.commands.registerCommand('cody.fixup.codelens.diff', id => {
-                telemetryService.log('CodyVSCodeExtension:fixup:codeLens:clicked', {
-                    op: 'diff',
-                    hasV2Event: true,
-                })
-                telemetryRecorder.recordEvent('cody.fixup.codeLens', 'diff')
-                return this.diff(id)
-            }),
-            vscode.commands.registerCommand('cody.fixup.codelens.retry', async id => {
-                telemetryService.log('CodyVSCodeExtension:fixup:codeLens:clicked', {
-                    op: 'regenerate',
-                    hasV2Event: true,
-                })
-                telemetryRecorder.recordEvent('cody.fixup.codeLens', 'retry')
-                return this.retry(id)
-            }),
-            vscode.commands.registerCommand('cody.fixup.codelens.undo', id => {
-                telemetryService.log('CodyVSCodeExtension:fixup:codeLens:clicked', {
-                    op: 'undo',
-                    hasV2Event: true,
-                })
-                telemetryRecorder.recordEvent('cody.fixup.codeLens', 'undo')
-                return this.undo(id)
-            }),
-            vscode.commands.registerCommand('cody.fixup.codelens.accept', id => {
-                telemetryService.log('CodyVSCodeExtension:fixup:codeLens:clicked', {
-                    op: 'accept',
-                    hasV2Event: true,
-                })
-                telemetryRecorder.recordEvent('cody.fixup.codeLens', 'accept')
-                return this.accept(id)
-            }),
-            vscode.commands.registerCommand('cody.fixup.codelens.error', id => {
-                telemetryService.log('CodyVSCodeExtension:fixup:codeLens:clicked', {
-                    op: 'show_error',
-                    hasV2Event: true,
-                })
-                telemetryRecorder.recordEvent('cody.fixup.codeLens', 'showError')
-                return this.showError(id)
-            }),
-            vscode.commands.registerCommand('cody.fixup.codelens.skip-formatting', id => {
-                telemetryService.log('CodyVSCodeExtension:fixup:codeLens:clicked', {
-                    op: 'skip_formatting',
-                    hasV2Event: true,
-                })
-                telemetryRecorder.recordEvent('cody.fixup.codeLens', 'skipFormatting')
-                return this.skipFormatting(id)
-            }),
-            vscode.commands.registerCommand('cody.fixup.cancelNearest', () => {
-                const nearestTask = this.getNearestTask({ filter: { states: CANCELABLE_TASK_STATES } })
-                if (!nearestTask) {
-                    return
-                }
-                return vscode.commands.executeCommand('cody.fixup.codelens.cancel', nearestTask.id)
-            }),
-            vscode.commands.registerCommand('cody.fixup.acceptNearest', () => {
-                const nearestTask = this.getNearestTask({ filter: { states: ACTIONABLE_TASK_STATES } })
-                if (!nearestTask) {
-                    return
-                }
-                return vscode.commands.executeCommand('cody.fixup.codelens.accept', nearestTask.id)
-            }),
-            vscode.commands.registerCommand('cody.fixup.retryNearest', () => {
-                const nearestTask = this.getNearestTask({ filter: { states: ACTIONABLE_TASK_STATES } })
-                if (!nearestTask) {
-                    return
-                }
-                return vscode.commands.executeCommand('cody.fixup.codelens.retry', nearestTask.id)
-            }),
-            vscode.commands.registerCommand('cody.fixup.undoNearest', () => {
-                const nearestTask = this.getNearestTask({ filter: { states: ACTIONABLE_TASK_STATES } })
-                if (!nearestTask) {
-                    return
-                }
-                return vscode.commands.executeCommand('cody.fixup.codelens.undo', nearestTask.id)
-            })
+            vscode.workspace.registerTextDocumentContentProvider('cody-fixup', this.contentStore)
         )
         // Observe file renaming and deletion
         this.files = new FixupFileObserver()
@@ -804,7 +715,7 @@ export class FixupController
 
     private discard(task: FixupTask): void {
         this.needsDiffUpdate_.delete(task)
-        this.codelenses.didDeleteTask(task)
+        this.controls.didDeleteTask(task)
         this.contentStore.delete(task.id)
         this.decorator.didCompleteTask(task)
         this.tasks.delete(task.id)
@@ -941,7 +852,7 @@ export class FixupController
 
     // Handles when the range associated with a fixup task changes.
     public rangeDidChange(task: FixupTask): void {
-        this.codelenses.didUpdateTask(task)
+        this.controls.didUpdateTask(task)
         // We don't notify the decorator about this range change; vscode
         // updates any text decorations and we can recompute them, lazily,
         // if the diff is dirtied.
@@ -985,8 +896,8 @@ export class FixupController
             this.decorator.didChangeVisibleTextEditors(file, editors)
         }
 
-        // Update shortcut enablement for visible files
-        this.codelenses.updateKeyboardShortcutEnablement([...editorsByFile.keys()])
+        // Notify controls that the visible files, by task, have changed.
+        this.controls.didChangeVisibleFixupEditors(editorsByFile)
     }
 
     private updateDiffs(): void {
@@ -1061,6 +972,9 @@ export class FixupController
         const diffId = `${task.id}-${Date.now()}`
         await this.contentStore.set(diffId, task.fixupFile.uri)
         const tempDocUri = vscode.Uri.parse(`cody-fixup:${task.fixupFile.uri.fsPath}#${diffId}`)
+
+        // TODO(dpc): Move the below to a "diff strategy" callback in the controls.
+
         const doc = await vscode.workspace.openTextDocument(tempDocUri)
         const edit = new vscode.WorkspaceEdit()
         edit.replace(tempDocUri, task.selectionRange, diff.originalText)
@@ -1156,7 +1070,7 @@ export class FixupController
             return
         }
         // Save states of the task
-        this.codelenses.didUpdateTask(task)
+        this.controls.didUpdateTask(task)
 
         if (task.state === CodyTaskState.applying) {
             void this.apply(task.id)
@@ -1204,7 +1118,7 @@ export class FixupController
 
     public dispose(): void {
         this.reset()
-        this.codelenses.dispose()
+        this.controls.dispose()
         this.decorator.dispose()
         for (const disposable of this._disposables) {
             disposable.dispose()

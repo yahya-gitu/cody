@@ -3,7 +3,7 @@ package com.sourcegraph.cody.protocol_generated
 
 data class EditTask(
   val id: String? = null,
-  val state: CodyTaskState? = null,
+  val state: CodyTaskState? = null, // Oneof: idle, working, inserting, applying, formatting, applied, finished, error, pending
   val error: CodyError? = null,
 )
 

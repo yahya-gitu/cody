@@ -1,5 +1,6 @@
 import * as vscode from 'vscode'
 
+import { clientSettings } from '../client-settings'
 import type { FixupFile } from './FixupFile'
 import type { FixupTask } from './FixupTask'
 import type { Diff } from './diff'
@@ -34,8 +35,29 @@ function makeDecorations(diff: Diff | undefined): TaskDecorations {
     }
 }
 
-// TODO: Consider constraining decorations to visible ranges.
-export class FixupDecorator implements vscode.Disposable {
+export interface FixupDecorator extends vscode.Disposable {
+    didChangeVisibleTextEditors(file: FixupFile, editors: vscode.TextEditor[]): void
+    didUpdateDiff(task: FixupTask): void
+    didCompleteTask(task: FixupTask): void
+}
+
+export function createFixupDecorator(): FixupDecorator {
+    switch (clientSettings().editDecorations) {
+        case 'characterDiffHighlights':
+            return new CharacterDiffFixupDecorator()
+        case 'none':
+            return new NopFixupDecorator()
+    }
+}
+
+export class NopFixupDecorator implements FixupDecorator {
+    public dispose() {}
+    public didChangeVisibleTextEditors() {}
+    public didUpdateDiff() {}
+    public didCompleteTask() {}
+}
+
+export class CharacterDiffFixupDecorator implements FixupDecorator {
     private decorationCodyConflictMarker_: vscode.TextEditorDecorationType
     private decorationCodyConflicted_: vscode.TextEditorDecorationType
     private decorationCodyIncoming_: vscode.TextEditorDecorationType
