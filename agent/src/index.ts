@@ -22,6 +22,10 @@ process.on('uncaughtException', e => {
     console.error('Uncaught exception:', e)
 })
 
+process.on('unhandledRejection', e => {
+    console.error('Unhandled rejection:', e)
+})
+
 // Deduplicates and installs mac root certs onto the global agent
 // This is a no op for non-mac environments
 require('mac-ca').addToGlobalAgent({ excludeBundled: false })
