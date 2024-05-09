@@ -39,6 +39,7 @@ export async function createProviderConfig(
             case 'unstable-openai': {
                 return createUnstableOpenAIProviderConfig({
                     client,
+                    user: undefined,
                 })
             }
             case 'fireworks': {
@@ -102,6 +103,7 @@ export async function createProviderConfig(
                     client,
                     // Model name for azure openai provider is a deployment name. It shouldn't appear in logs.
                     model: provider === 'azure-openai' && model ? '' : model,
+                    user: authStatus.configOverwrites?.user || undefined,
                 })
 
             case 'fireworks':

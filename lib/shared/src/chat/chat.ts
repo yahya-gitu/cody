@@ -19,7 +19,7 @@ export class ChatClient {
         private completions: SourcegraphCompletionsClient,
         private getAuthStatus: () => Pick<
             AuthStatus,
-            'userCanUpgrade' | 'isDotCom' | 'endpoint' | 'codyApiVersion'
+            'userCanUpgrade' | 'isDotCom' | 'endpoint' | 'codyApiVersion' | 'configOverwrites'
         >
     ) {}
 
@@ -50,6 +50,10 @@ export class ChatClient {
             ...DEFAULT_CHAT_COMPLETION_PARAMETERS,
             ...params,
             messages: messagesToSend,
+        }
+
+        if (authStatus.configOverwrites?.user) {
+            completionParams.user = authStatus.configOverwrites.user
         }
 
         return this.completions.stream(

@@ -12,6 +12,8 @@ export async function symfExpandQuery(
     query: PromptString
 ): Promise<string> {
     const preamble = getSimplePreamble(undefined, 0)
+    // TODO(dpc): Pass the "user" parameter from
+    // authStatus.configOverwrites.user here.
     const stream = completionsClient.stream(
         {
             messages: [

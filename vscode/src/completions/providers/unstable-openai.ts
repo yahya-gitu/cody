@@ -43,6 +43,7 @@ const lineNumberDependentCompletionParams = getLineNumberDependentCompletionPara
 interface UnstableOpenAIOptions {
     maxContextTokens?: number
     client: Pick<CodeCompletionsClient, 'complete'>
+    user: string | undefined
 }
 
 const PROVIDER_IDENTIFIER = 'unstable-openai'
@@ -50,16 +51,18 @@ const PROVIDER_IDENTIFIER = 'unstable-openai'
 class UnstableOpenAIProvider extends Provider {
     private client: Pick<CodeCompletionsClient, 'complete'>
     private promptChars: number
+    private llmUser: string | undefined
     private instructions =
         ps`You are a code completion AI designed to take the surrounding code and shared context into account in order to predict and suggest high-quality code to complete the code enclosed in ${OPENING_CODE_TAG} tags.  You only respond with code that works and fits seamlessly with surrounding code. Do not include anything else beyond the code.`
 
     constructor(
         options: ProviderOptions,
-        { maxContextTokens, client }: Required<UnstableOpenAIOptions>
+        { maxContextTokens, client, user }: Required<UnstableOpenAIOptions>
     ) {
         super(options)
         this.promptChars = tokensToChars(maxContextTokens - MAX_RESPONSE_TOKENS)
         this.client = client
+        this.llmUser = user
     }
 
     public emptyPromptLength(): number {
@@ -144,6 +147,10 @@ ${OPENING_CODE_TAG}${infillBlock}`
             ...partialRequestParams,
             messages: [{ speaker: 'human', text: this.createPrompt(snippets) }],
             topP: 0.5,
+        }
+
+        if (this.llmUser) {
+            requestParams.user = this.llmUser
         }
 
         tracer?.params(requestParams)

@@ -259,6 +259,7 @@ export interface CodyLLMSiteConfiguration {
     completionModel?: string
     completionModelMaxTokens?: number
     provider?: string
+    user?: string
 }
 
 export interface CurrentUserCodySubscription {

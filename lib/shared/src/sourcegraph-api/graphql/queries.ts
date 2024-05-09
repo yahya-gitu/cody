@@ -93,6 +93,7 @@ query CurrentSiteCodyLlmConfiguration {
             fastChatModelMaxTokens
             completionModel
             completionModelMaxTokens
+            user
         }
     }
 }`
