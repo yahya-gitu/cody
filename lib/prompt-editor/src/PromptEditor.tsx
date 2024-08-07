@@ -133,6 +133,7 @@ export const PromptEditor: FunctionComponent<Props> = ({
                     const nodesToInsert = lexicalNodesForContextItems(items, {
                         isFromInitialContext: false,
                     })
+                    console.log('# addMentions', nodesToInsert)
                     $insertNodes([$createTextNode(' '), ...nodesToInsert])
                     const lastNode = nodesToInsert.at(-1)
                     if (lastNode) {

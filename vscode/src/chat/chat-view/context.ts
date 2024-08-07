@@ -127,10 +127,10 @@ export async function resolveContext({
 
         const allContext: ContextItem[] = (
             await Promise.all([
+                otherMentionsResolved,
                 repoContextSearchResults,
                 treeContextSymfSearchResults,
                 treeContextEmbeddingsSearchResults,
-                otherMentionsResolved,
             ])
         ).flat()
         const priorityContext = await getPriorityContext(input.text, editor, allContext)

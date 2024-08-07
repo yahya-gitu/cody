@@ -158,7 +158,13 @@ export class PromptBuilder {
 
             // Don't update context items from the past (history items) unless undefined.
             if (type !== 'history' || item.isTooLarge === undefined) {
-                item.isTooLarge = !isWithinLimit
+                if (!isWithinLimit) {
+                    console.error('# PromptBuilder: item.isTooLarge', item)
+                } else {
+                    console.error('# PromptBuilder: !item.isTooLarge', item)
+                }
+                // item.isTooLarge = !isWithinLimit
+                item.isTooLarge = true
                 item.isTooLargeReason = reason
             }
 

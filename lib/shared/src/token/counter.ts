@@ -141,6 +141,9 @@ export class TokenCounter {
                     throw new Error('Chat token usage must be updated before Context.')
                 }
                 const isWithinLimit = this.remainingTokens.corpus >= count
+                if (!isWithinLimit) {
+                    console.error('### exceeded corpus context token limit')
+                }
                 return {
                     isWithinLimit,
                     reason: !isWithinLimit

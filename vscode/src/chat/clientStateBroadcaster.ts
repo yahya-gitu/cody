@@ -43,6 +43,13 @@ export function startClientStateBroadcaster({
         const [contextFile] = await getSelectionOrFileContext()
         signal?.throwIfAborted()
         if (contextFile) {
+            // MARK
+            const isTooLarge = contextFile.size !== undefined && contextFile.size > userContextSize
+            if (isTooLarge) {
+                console.error('# isTooLarge')
+            } else {
+                console.error('# !isTooLarge')
+            }
             const range = contextFile.range ? expandToLineRange(contextFile.range) : undefined
             const item = {
                 ...contextFile,
@@ -52,7 +59,8 @@ export function startClientStateBroadcaster({
                     range ? `:${displayLineRange(range)}` : ''
                 }`,
                 range,
-                isTooLarge: contextFile.size !== undefined && contextFile.size > userContextSize,
+                // isTooLarge: contextFile.size !== undefined && contextFile.size > userContextSize,
+                isTooLarge,
                 source: ContextItemSource.Initial,
                 icon: range ? 'list-selection' : 'file',
             } satisfies ContextItem

@@ -159,6 +159,10 @@ export const MentionsPlugin: FunctionComponent<{ contextWindowSizeInTokens?: num
 
                     const selectedItem = selectedOption.item
                     const isLargeFile = selectedItem.isTooLarge
+
+                    console.log('# selectedItem', selectedItem)
+                    console.log('# isLargeFile', isLargeFile)
+
                     // When selecting a large file without range, add the selected option as text node with : at the end.
                     // This allows users to autocomplete the file path, and provide them with the options to add range.
                     if (isLargeFile && !selectedItem.range) {

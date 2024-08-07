@@ -17,10 +17,17 @@ export function prepareContextItemForMentionMenu(
     item: ContextItem,
     remainingTokenBudget: number
 ): ContextItem {
+    let isTooLarge = item.size !== undefined ? item.size > remainingTokenBudget : item.isTooLarge
+    if (isTooLarge) {
+        console.error('# prepareContextItemForMentionMenu: isTooLarge', item)
+    } else {
+        console.error('# prepareContextItemForMentionMenu: !isTooLarge', item)
+    }
+    isTooLarge = true
     return {
         ...item,
 
-        isTooLarge: item.size !== undefined ? item.size > remainingTokenBudget : item.isTooLarge,
+        isTooLarge,
 
         // All @-mentions should have a source of `User`.
         source: ContextItemSource.User,

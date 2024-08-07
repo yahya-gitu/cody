@@ -73,6 +73,7 @@ export const ContextCell: FunctionComponent<{
         const excludedAtContext: ContextItem[] = []
         if (contextItemsToDisplay) {
             for (const item of contextItemsToDisplay) {
+                item.isTooLarge = true
                 if (item.isTooLarge || item.isIgnored) {
                     excludedAtContext.push(item)
                 } else {
