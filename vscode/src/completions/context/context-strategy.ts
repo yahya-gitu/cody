@@ -3,9 +3,9 @@ import type { ContextRetriever } from '../types'
 import type { BfgRetriever } from './retrievers/bfg/bfg-retriever'
 import { JaccardSimilarityRetriever } from './retrievers/jaccard-similarity/jaccard-similarity-retriever'
 import { LspLightRetriever } from './retrievers/lsp-light/lsp-light-retriever'
+import { RecentCopyRetriever } from './retrievers/recent-copy/recent-copy'
 import { RecentEditsRetriever } from './retrievers/recent-edits/recent-edits-retriever'
 import { loadTscRetriever } from './retrievers/tsc/load-tsc-retriever'
-import {RecentCopyRetriever} from './retrievers/recent-copy/recent-copy';
 
 export type ContextStrategy =
     | 'lsp-light'
@@ -84,7 +84,7 @@ export class DefaultContextStrategyFactory implements ContextStrategyFactory {
                 this.disposables.push(this.localRetriever, this.graphRetriever)
                 break
             case 'recent-copy':
-                this.localRetriever = new RecentCopyRetriever(60*1000, 100)
+                this.localRetriever = new RecentCopyRetriever(60 * 1000, 100)
                 this.disposables.push(this.localRetriever)
                 break
             case 'jaccard-similarity':
