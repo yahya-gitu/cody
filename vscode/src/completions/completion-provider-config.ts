@@ -73,6 +73,8 @@ class CompletionProviderConfig {
                 return 'recent-edits-5m'
             case 'recent-edits-mixed':
                 return 'recent-edits-mixed'
+            case 'recent-copy':
+                return 'recent-copy'
             default:
                 return this.experimentBasedContextStrategy()
         }
