@@ -12,7 +12,14 @@ test.use({
 })
 
 test.describe('cody ignore', {}, () => {
-    test('it works', async ({ workspaceDir, page, vscodeUI, mitmProxy, polly }, testInfo) => {
+    test('it works', async ({
+        workspaceDir,
+        page,
+        vscodeUI,
+        mitmProxy,
+        polly,
+        validOptions,
+    }, testInfo) => {
         const session = uix.vscode.Session.pending({ page, vscodeUI, workspaceDir })
         const cody = uix.cody.Extension.with({ page, workspaceDir })
 

@@ -1445,6 +1445,7 @@
     "fs-extra": "^11.2.0",
     "fuzzysort": "^2.0.4",
     "http-proxy-middleware": "^3.0.0",
+    "immer": "^10.1.1",
     "mocha": "^10.2.0",
     "node-fetch": "^2.6.4",
     "normalize-url": "^5.3.1",

@@ -261,6 +261,7 @@ export {
 } from './telemetry-v2/TelemetryRecorderProvider'
 export type { TelemetryRecorder } from './telemetry-v2/TelemetryRecorderProvider'
 export * from './telemetry-v2/singleton'
+export { events as telemetryEvents } from './telemetry-v2/events'
 export { testFileUri } from './test/path-helpers'
 export * from './tracing'
 export {
