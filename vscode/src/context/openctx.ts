@@ -29,7 +29,7 @@ import type {
 } from '@openctx/client'
 import type { createController } from '@openctx/vscode-lib'
 import { Observable, map } from 'observable-fns'
-import { logDebug, outputChannel } from '../log'
+import { logDebug } from '../log'
 import { gitMentionsProvider } from './openctx/git'
 import LinearIssuesProvider from './openctx/linear-issues'
 import RemoteDirectoryProvider, { createRemoteDirectoryProvider } from './openctx/remoteDirectorySearch'
@@ -83,7 +83,7 @@ export function exposeOpenCtxClient(
                 const controller = createController({
                     extensionId: context.extension.id,
                     secrets: context.secrets,
-                    outputChannel,
+                    outputChannel: openctxOutputChannel,
                     features: isCodyWeb ? {} : { annotations: true, statusBar: true },
                     providers: isCodyWeb
                         ? Observable.of(getCodyWebOpenCtxProviders())
@@ -103,6 +103,8 @@ export function exposeOpenCtxClient(
         map(() => undefined)
     )
 }
+
+const openctxOutputChannel = vscode.window.createOutputChannel('OpenCtx')
 
 export function getOpenCtxProviders(
     authStatusChanges: Observable<Pick<AuthStatus, 'endpoint'>>,
