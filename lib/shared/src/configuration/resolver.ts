@@ -61,7 +61,7 @@ export type PickResolvedConfiguration<Keys extends KeysSpec> = {
 async function resolveConfiguration(input: ConfigurationInput): Promise<ResolvedConfiguration> {
     const serverEndpoint =
         input.clientState.lastUsedEndpoint ??
-        (input.clientConfiguration.serverEndpoint || DOTCOM_URL.toString())
+        (input.clientConfiguration['antipattern:serverEndpoint'] || DOTCOM_URL.toString())
 
     // We must not throw here, because that would result in the `resolvedConfig` observable
     // terminating and all callers receiving no further config updates.
@@ -72,7 +72,8 @@ async function resolveConfiguration(input: ConfigurationInput): Promise<Resolved
                 `Failed to get access token for endpoint ${serverEndpoint}: ${error}`
             )
             return null
-        })) ?? null
+        })) ??
+        (input.clientConfiguration['antipattern:accessToken'] || null)
     return {
         configuration: input.clientConfiguration,
         clientState: input.clientState,

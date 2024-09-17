@@ -129,6 +129,10 @@ export function getConfiguration(
             0
         ),
 
+        // Note: this are useful for some testing use-cases but should otherwise not be used / relied upon
+        'antipattern:serverEndpoint': vsCodeConfig.get<string>('cody.serverEndpoint'),
+        'antipattern:accessToken': vsCodeConfig.get<string>('cody.accessToken'),
+
         // Note: In spirit, we try to minimize agent-specific code paths in the VSC extension.
         // We currently use this flag for the agent to provide more helpful error messages
         // when something goes wrong, and to suppress event logging in the agent.

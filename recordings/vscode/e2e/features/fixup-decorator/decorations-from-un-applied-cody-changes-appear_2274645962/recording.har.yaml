@@ -54,7 +54,7 @@ log:
         cookies: []
         headers:
           - name: date
-            value: Tue, 10 Sep 2024 13:49:18 GMT
+            value: Tue, 17 Sep 2024 05:17:39 GMT
           - name: content-type
             value: text/plain; charset=utf-8
           - name: content-length
@@ -62,7 +62,7 @@ log:
           - name: connection
             value: close
           - name: retry-after
-            value: "592"
+            value: "212"
           - name: access-control-allow-credentials
             value: "true"
           - name: access-control-allow-origin
@@ -85,8 +85,8 @@ log:
         redirectURL: ""
         status: 200
         statusText: OK
-      startedDateTime: 2024-09-10T13:49:18.228Z
-      time: 216
+      startedDateTime: 2024-09-17T05:17:39.659Z
+      time: 118
       timings:
         blocked: -1
         connect: -1
@@ -94,8 +94,8 @@ log:
         receive: 0
         send: 0
         ssl: -1
-        wait: 216
-    - _id: ebaae16e07761c7440401128a5081812
+        wait: 118
+    - _id: ff24f3ad357d7b6f6093743735a46056
       _order: 0
       cache: {}
       request:
@@ -109,7 +109,7 @@ log:
           - name: connection
             value: close
           - name: traceparent
-            value: 00-0cb3aea36f7464b705cc80cc9aa5cfe0-6cc78fdeda8c0412-01
+            value: 00-4951a331864b6c4196576cb25a866695-2dfcf3a44f10075c-01
           - name: authorization
             value: token
               REDACTED_5313821e901984ba7bbf1999deafb5f6f722c05ed13b6dfa6cffbd6128089e39
@@ -197,21 +197,21 @@ log:
             topP: -1
         queryString:
           - name: api-version
-            value: "1"
+            value: "2"
           - name: client-name
             value: vscode
           - name: client-version
-            value: 1.34.1
-        url: https://sourcegraph.com/.api/completions/stream?api-version=1&client-name=vscode&client-version=1.34.1
+            value: 1.34.3
+        url: https://sourcegraph.com/.api/completions/stream?api-version=2&client-name=vscode&client-version=1.34.3
       response:
-        bodySize: 617
+        bodySize: 345
         content:
           mimeType: text/event-stream
-          size: 617
+          size: 345
           text: >+
             event: completion
 
-            data: {"completion":"        \u003ctitle\u003eGoodbye Cody\u003c/title\u003e\n","stopReason":"stop_sequence"}
+            data: {"deltaText":"        <title>Goodbye Cody</title>\n","stopReason":"stop_sequence"}
 
 
             event: done
@@ -221,7 +221,7 @@ log:
         cookies: []
         headers:
           - name: date
-            value: Tue, 10 Sep 2024 13:49:22 GMT
+            value: Tue, 17 Sep 2024 05:17:42 GMT
           - name: content-type
             value: text/event-stream
           - name: transfer-encoding
@@ -229,7 +229,7 @@ log:
           - name: connection
             value: close
           - name: retry-after
-            value: "591"
+            value: "211"
           - name: access-control-allow-credentials
             value: "true"
           - name: access-control-allow-origin
@@ -252,8 +252,8 @@ log:
         redirectURL: ""
         status: 200
         statusText: OK
-      startedDateTime: 2024-09-10T13:49:19.738Z
-      time: 2833
+      startedDateTime: 2024-09-17T05:17:40.774Z
+      time: 1315
       timings:
         blocked: -1
         connect: -1
@@ -261,7 +261,7 @@ log:
         receive: 0
         send: 0
         ssl: -1
-        wait: 2833
+        wait: 1315
     - _id: 28c346c4c160958f92e8f989a1737e5e
       _order: 0
       cache: {}
@@ -290,7 +290,7 @@ log:
             value: sourcegraph.dotcom
           - name: x-mitm-auth-token-name
             value: sourcegraph.dotcom
-        headersSize: 561
+        headersSize: 634
         httpVersion: HTTP/1.1
         method: POST
         postData:
@@ -329,7 +329,7 @@ log:
         cookies: []
         headers:
           - name: date
-            value: Tue, 10 Sep 2024 13:49:17 GMT
+            value: Tue, 17 Sep 2024 05:17:39 GMT
           - name: content-type
             value: application/json
           - name: content-length
@@ -337,7 +337,7 @@ log:
           - name: connection
             value: close
           - name: retry-after
-            value: "593"
+            value: "213"
           - name: access-control-allow-credentials
             value: "true"
           - name: access-control-allow-origin
@@ -360,8 +360,8 @@ log:
         redirectURL: ""
         status: 200
         statusText: OK
-      startedDateTime: 2024-09-10T13:49:17.321Z
-      time: 248
+      startedDateTime: 2024-09-17T05:17:39.069Z
+      time: 129
       timings:
         blocked: -1
         connect: -1
@@ -369,7 +369,7 @@ log:
         receive: 0
         send: 0
         ssl: -1
-        wait: 248
+        wait: 129
     - _id: a4d641ac3093a4efbffe59352b351757
       _order: 0
       cache: {}
@@ -398,7 +398,7 @@ log:
             value: sourcegraph.dotcom
           - name: x-mitm-auth-token-name
             value: sourcegraph.dotcom
-        headersSize: 561
+        headersSize: 634
         httpVersion: HTTP/1.1
         method: POST
         postData:
@@ -429,7 +429,7 @@ log:
         cookies: []
         headers:
           - name: date
-            value: Tue, 10 Sep 2024 13:49:17 GMT
+            value: Tue, 17 Sep 2024 05:17:39 GMT
           - name: content-type
             value: application/json
           - name: content-length
@@ -437,7 +437,7 @@ log:
           - name: connection
             value: close
           - name: retry-after
-            value: "593"
+            value: "213"
           - name: access-control-allow-credentials
             value: "true"
           - name: access-control-allow-origin
@@ -460,8 +460,8 @@ log:
         redirectURL: ""
         status: 200
         statusText: OK
-      startedDateTime: 2024-09-10T13:49:17.326Z
-      time: 228
+      startedDateTime: 2024-09-17T05:17:39.071Z
+      time: 138
       timings:
         blocked: -1
         connect: -1
@@ -469,7 +469,7 @@ log:
         receive: 0
         send: 0
         ssl: -1
-        wait: 228
+        wait: 138
     - _id: 06568f66a76daea32430b82552305046
       _order: 0
       cache: {}
@@ -498,7 +498,7 @@ log:
             value: sourcegraph.dotcom
           - name: x-mitm-auth-token-name
             value: sourcegraph.dotcom
-        headersSize: 556
+        headersSize: 629
         httpVersion: HTTP/1.1
         method: POST
         postData:
@@ -529,7 +529,7 @@ log:
         cookies: []
         headers:
           - name: date
-            value: Tue, 10 Sep 2024 13:49:17 GMT
+            value: Tue, 17 Sep 2024 05:17:39 GMT
           - name: content-type
             value: application/json
           - name: content-length
@@ -537,7 +537,7 @@ log:
           - name: connection
             value: close
           - name: retry-after
-            value: "593"
+            value: "213"
           - name: access-control-allow-credentials
             value: "true"
           - name: access-control-allow-origin
@@ -560,8 +560,8 @@ log:
         redirectURL: ""
         status: 200
         statusText: OK
-      startedDateTime: 2024-09-10T13:49:17.324Z
-      time: 234
+      startedDateTime: 2024-09-17T05:17:39.070Z
+      time: 135
       timings:
         blocked: -1
         connect: -1
@@ -569,7 +569,7 @@ log:
         receive: 0
         send: 0
         ssl: -1
-        wait: 234
+        wait: 135
     - _id: d1e9e9d8ae116eb7e71823b775d35828
       _order: 0
       cache: {}
@@ -598,7 +598,7 @@ log:
             value: sourcegraph.dotcom
           - name: x-mitm-auth-token-name
             value: sourcegraph.dotcom
-        headersSize: 541
+        headersSize: 614
         httpVersion: HTTP/1.1
         method: POST
         postData:
@@ -644,7 +644,7 @@ log:
         cookies: []
         headers:
           - name: date
-            value: Tue, 10 Sep 2024 13:49:17 GMT
+            value: Tue, 17 Sep 2024 05:17:39 GMT
           - name: content-type
             value: application/json
           - name: content-length
@@ -652,7 +652,7 @@ log:
           - name: connection
             value: close
           - name: retry-after
-            value: "593"
+            value: "213"
           - name: access-control-allow-credentials
             value: "true"
           - name: access-control-allow-origin
@@ -675,8 +675,8 @@ log:
         redirectURL: ""
         status: 200
         statusText: OK
-      startedDateTime: 2024-09-10T13:49:17.327Z
-      time: 229
+      startedDateTime: 2024-09-17T05:17:39.072Z
+      time: 145
       timings:
         blocked: -1
         connect: -1
@@ -684,7 +684,7 @@ log:
         receive: 0
         send: 0
         ssl: -1
-        wait: 229
+        wait: 145
     - _id: 9fdf3418a505d251116e020fda591c55
       _order: 0
       cache: {}
@@ -713,7 +713,7 @@ log:
             value: sourcegraph.dotcom
           - name: x-mitm-auth-token-name
             value: sourcegraph.dotcom
-        headersSize: 557
+        headersSize: 630
         httpVersion: HTTP/1.1
         method: POST
         postData:
@@ -745,12 +745,12 @@ log:
           size: 194
           text: "{\"data\":{\"currentUser\":{\"codySubscription\":{\"status\":\"ACTIVE\",\
             \"plan\":\"PRO\",\"applyProRateLimits\":true,\"currentPeriodStartAt\
-            \":\"2024-08-14T22:11:32Z\",\"currentPeriodEndAt\":\"2024-09-14T22:\
+            \":\"2024-09-14T22:11:32Z\",\"currentPeriodEndAt\":\"2024-10-14T22:\
             11:32Z\"}}}}"
         cookies: []
         headers:
           - name: date
-            value: Tue, 10 Sep 2024 13:49:17 GMT
+            value: Tue, 17 Sep 2024 05:17:39 GMT
           - name: content-type
             value: application/json
           - name: content-length
@@ -758,7 +758,7 @@ log:
           - name: connection
             value: close
           - name: retry-after
-            value: "593"
+            value: "213"
           - name: access-control-allow-credentials
             value: "true"
           - name: access-control-allow-origin
@@ -781,8 +781,8 @@ log:
         redirectURL: ""
         status: 200
         statusText: OK
-      startedDateTime: 2024-09-10T13:49:17.575Z
-      time: 352
+      startedDateTime: 2024-09-17T05:17:39.222Z
+      time: 229
       timings:
         blocked: -1
         connect: -1
@@ -790,7 +790,7 @@ log:
         receive: 0
         send: 0
         ssl: -1
-        wait: 352
+        wait: 229
     - _id: 39fe3efa22c727dff9fd6b923a145b81
       _order: 0
       cache: {}
@@ -854,7 +854,7 @@ log:
         cookies: []
         headers:
           - name: date
-            value: Tue, 10 Sep 2024 13:49:18 GMT
+            value: Tue, 17 Sep 2024 05:17:39 GMT
           - name: content-type
             value: application/json
           - name: content-length
@@ -862,7 +862,7 @@ log:
           - name: connection
             value: close
           - name: retry-after
-            value: "592"
+            value: "212"
           - name: access-control-allow-credentials
             value: "true"
           - name: access-control-allow-origin
@@ -885,8 +885,8 @@ log:
         redirectURL: ""
         status: 200
         statusText: OK
-      startedDateTime: 2024-09-10T13:49:18.746Z
-      time: 231
+      startedDateTime: 2024-09-17T05:17:39.738Z
+      time: 128
       timings:
         blocked: -1
         connect: -1
@@ -894,7 +894,7 @@ log:
         receive: 0
         send: 0
         ssl: -1
-        wait: 231
+        wait: 128
     - _id: 34f0242529b88d6ed08202747e213ebd
       _order: 0
       cache: {}
@@ -952,7 +952,7 @@ log:
         cookies: []
         headers:
           - name: date
-            value: Tue, 10 Sep 2024 13:49:19 GMT
+            value: Tue, 17 Sep 2024 05:17:39 GMT
           - name: content-type
             value: application/json
           - name: content-length
@@ -960,7 +960,7 @@ log:
           - name: connection
             value: close
           - name: retry-after
-            value: "591"
+            value: "212"
           - name: access-control-allow-credentials
             value: "true"
           - name: access-control-allow-origin
@@ -983,8 +983,8 @@ log:
         redirectURL: ""
         status: 200
         statusText: OK
-      startedDateTime: 2024-09-10T13:49:18.859Z
-      time: 228
+      startedDateTime: 2024-09-17T05:17:39.807Z
+      time: 127
       timings:
         blocked: -1
         connect: -1
@@ -992,7 +992,7 @@ log:
         receive: 0
         send: 0
         ssl: -1
-        wait: 228
+        wait: 127
     - _id: a4f06f44ac6627e56ffe62ff40b4aaa9
       _order: 0
       cache: {}
@@ -1021,7 +1021,7 @@ log:
             value: sourcegraph.dotcom
           - name: x-mitm-auth-token-name
             value: sourcegraph.dotcom
-        headersSize: 548
+        headersSize: 621
         httpVersion: HTTP/1.1
         method: POST
         postData:
@@ -1045,12 +1045,12 @@ log:
         content:
           mimeType: application/json
           size: 73
-          text: "{\"data\":{\"site\":{\"productVersion\":\"290746_2024-09-10_5.7-5c5c14be\
-            9d78\"}}}"
+          text: "{\"data\":{\"site\":{\"productVersion\":\"291267_2024-09-13_5.7-c635b228\
+            7985\"}}}"
         cookies: []
         headers:
           - name: date
-            value: Tue, 10 Sep 2024 13:49:17 GMT
+            value: Tue, 17 Sep 2024 05:17:39 GMT
           - name: content-type
             value: application/json
           - name: content-length
@@ -1058,7 +1058,7 @@ log:
           - name: connection
             value: close
           - name: retry-after
-            value: "593"
+            value: "213"
           - name: access-control-allow-credentials
             value: "true"
           - name: access-control-allow-origin
@@ -1081,8 +1081,8 @@ log:
         redirectURL: ""
         status: 200
         statusText: OK
-      startedDateTime: 2024-09-10T13:49:17.319Z
-      time: 217
+      startedDateTime: 2024-09-17T05:17:39.050Z
+      time: 131
       timings:
         blocked: -1
         connect: -1
@@ -1090,6 +1090,6 @@ log:
         receive: 0
         send: 0
         ssl: -1
-        wait: 217
+        wait: 131
   pages: []
   version: "1.2"

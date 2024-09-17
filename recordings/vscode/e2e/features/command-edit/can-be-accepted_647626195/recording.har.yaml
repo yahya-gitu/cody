@@ -54,7 +54,7 @@ log:
         cookies: []
         headers:
           - name: date
-            value: Tue, 10 Sep 2024 13:49:09 GMT
+            value: Tue, 17 Sep 2024 05:17:32 GMT
           - name: content-type
             value: text/plain; charset=utf-8
           - name: content-length
@@ -62,7 +62,7 @@ log:
           - name: connection
             value: close
           - name: retry-after
-            value: "154"
+            value: "219"
           - name: access-control-allow-credentials
             value: "true"
           - name: access-control-allow-origin
@@ -85,8 +85,8 @@ log:
         redirectURL: ""
         status: 200
         statusText: OK
-      startedDateTime: 2024-09-10T13:49:09.377Z
-      time: 228
+      startedDateTime: 2024-09-17T05:17:32.530Z
+      time: 151
       timings:
         blocked: -1
         connect: -1
@@ -94,8 +94,8 @@ log:
         receive: 0
         send: 0
         ssl: -1
-        wait: 228
-    - _id: 58b3db3baa0fa3bf8a628a1f402c3a72
+        wait: 151
+    - _id: d929b731bf577e27009487a03b740a70
       _order: 0
       cache: {}
       request:
@@ -109,7 +109,7 @@ log:
           - name: connection
             value: close
           - name: traceparent
-            value: 00-cc11995262c78779b838d02d40be9134-878d2289bc44ff47-01
+            value: 00-70f9d4e69f597b447f981f20812c5ac3-3f45c342db904480-01
           - name: authorization
             value: token
               REDACTED_5313821e901984ba7bbf1999deafb5f6f722c05ed13b6dfa6cffbd6128089e39
@@ -186,21 +186,21 @@ log:
             topP: -1
         queryString:
           - name: api-version
-            value: "1"
+            value: "2"
           - name: client-name
             value: vscode
           - name: client-version
-            value: 1.34.1
-        url: https://sourcegraph.com/.api/completions/stream?api-version=1&client-name=vscode&client-version=1.34.1
+            value: 1.34.3
+        url: https://sourcegraph.com/.api/completions/stream?api-version=2&client-name=vscode&client-version=1.34.3
       response:
-        bodySize: 782
+        bodySize: 399
         content:
           mimeType: text/event-stream
-          size: 782
+          size: 399
           text: >+
             event: completion
 
-            data: {"completion":"interface Fruit {\n    bananaName: string\n    bananaAge: number\n}\n","stopReason":"stop_sequence"}
+            data: {"deltaText":"interface Fruit {\n    bananaName: string\n    bananaAge: number\n}\n","stopReason":"stop_sequence"}
 
 
             event: done
@@ -210,7 +210,7 @@ log:
         cookies: []
         headers:
           - name: date
-            value: Tue, 10 Sep 2024 13:49:45 GMT
+            value: Tue, 17 Sep 2024 05:17:35 GMT
           - name: content-type
             value: text/event-stream
           - name: transfer-encoding
@@ -218,7 +218,7 @@ log:
           - name: connection
             value: close
           - name: retry-after
-            value: "598"
+            value: "217"
           - name: access-control-allow-credentials
             value: "true"
           - name: access-control-allow-origin
@@ -241,8 +241,8 @@ log:
         redirectURL: ""
         status: 200
         statusText: OK
-      startedDateTime: 2024-09-10T13:49:12.503Z
-      time: 32789
+      startedDateTime: 2024-09-17T05:17:34.515Z
+      time: 1326
       timings:
         blocked: -1
         connect: -1
@@ -250,7 +250,7 @@ log:
         receive: 0
         send: 0
         ssl: -1
-        wait: 32789
+        wait: 1326
     - _id: 28c346c4c160958f92e8f989a1737e5e
       _order: 0
       cache: {}
@@ -279,7 +279,7 @@ log:
             value: sourcegraph.dotcom
           - name: x-mitm-auth-token-name
             value: sourcegraph.dotcom
-        headersSize: 561
+        headersSize: 634
         httpVersion: HTTP/1.1
         method: POST
         postData:
@@ -318,7 +318,7 @@ log:
         cookies: []
         headers:
           - name: date
-            value: Tue, 10 Sep 2024 13:49:08 GMT
+            value: Tue, 17 Sep 2024 05:17:31 GMT
           - name: content-type
             value: application/json
           - name: content-length
@@ -326,7 +326,7 @@ log:
           - name: connection
             value: close
           - name: retry-after
-            value: "155"
+            value: "220"
           - name: access-control-allow-credentials
             value: "true"
           - name: access-control-allow-origin
@@ -349,8 +349,8 @@ log:
         redirectURL: ""
         status: 200
         statusText: OK
-      startedDateTime: 2024-09-10T13:49:08.462Z
-      time: 240
+      startedDateTime: 2024-09-17T05:17:31.432Z
+      time: 266
       timings:
         blocked: -1
         connect: -1
@@ -358,7 +358,7 @@ log:
         receive: 0
         send: 0
         ssl: -1
-        wait: 240
+        wait: 266
     - _id: a4d641ac3093a4efbffe59352b351757
       _order: 0
       cache: {}
@@ -387,7 +387,7 @@ log:
             value: sourcegraph.dotcom
           - name: x-mitm-auth-token-name
             value: sourcegraph.dotcom
-        headersSize: 561
+        headersSize: 634
         httpVersion: HTTP/1.1
         method: POST
         postData:
@@ -418,7 +418,7 @@ log:
         cookies: []
         headers:
           - name: date
-            value: Tue, 10 Sep 2024 13:49:08 GMT
+            value: Tue, 17 Sep 2024 05:17:31 GMT
           - name: content-type
             value: application/json
           - name: content-length
@@ -426,7 +426,7 @@ log:
           - name: connection
             value: close
           - name: retry-after
-            value: "155"
+            value: "220"
           - name: access-control-allow-credentials
             value: "true"
           - name: access-control-allow-origin
@@ -449,8 +449,8 @@ log:
         redirectURL: ""
         status: 200
         statusText: OK
-      startedDateTime: 2024-09-10T13:49:08.467Z
-      time: 240
+      startedDateTime: 2024-09-17T05:17:31.436Z
+      time: 299
       timings:
         blocked: -1
         connect: -1
@@ -458,7 +458,7 @@ log:
         receive: 0
         send: 0
         ssl: -1
-        wait: 240
+        wait: 299
     - _id: 06568f66a76daea32430b82552305046
       _order: 0
       cache: {}
@@ -487,7 +487,7 @@ log:
             value: sourcegraph.dotcom
           - name: x-mitm-auth-token-name
             value: sourcegraph.dotcom
-        headersSize: 556
+        headersSize: 629
         httpVersion: HTTP/1.1
         method: POST
         postData:
@@ -518,7 +518,7 @@ log:
         cookies: []
         headers:
           - name: date
-            value: Tue, 10 Sep 2024 13:49:08 GMT
+            value: Tue, 17 Sep 2024 05:17:31 GMT
           - name: content-type
             value: application/json
           - name: content-length
@@ -526,7 +526,7 @@ log:
           - name: connection
             value: close
           - name: retry-after
-            value: "155"
+            value: "220"
           - name: access-control-allow-credentials
             value: "true"
           - name: access-control-allow-origin
@@ -549,8 +549,8 @@ log:
         redirectURL: ""
         status: 200
         statusText: OK
-      startedDateTime: 2024-09-10T13:49:08.465Z
-      time: 282
+      startedDateTime: 2024-09-17T05:17:31.434Z
+      time: 295
       timings:
         blocked: -1
         connect: -1
@@ -558,7 +558,7 @@ log:
         receive: 0
         send: 0
         ssl: -1
-        wait: 282
+        wait: 295
     - _id: d1e9e9d8ae116eb7e71823b775d35828
       _order: 0
       cache: {}
@@ -587,7 +587,7 @@ log:
             value: sourcegraph.dotcom
           - name: x-mitm-auth-token-name
             value: sourcegraph.dotcom
-        headersSize: 541
+        headersSize: 614
         httpVersion: HTTP/1.1
         method: POST
         postData:
@@ -633,7 +633,7 @@ log:
         cookies: []
         headers:
           - name: date
-            value: Tue, 10 Sep 2024 13:49:08 GMT
+            value: Tue, 17 Sep 2024 05:17:31 GMT
           - name: content-type
             value: application/json
           - name: content-length
@@ -641,7 +641,7 @@ log:
           - name: connection
             value: close
           - name: retry-after
-            value: "155"
+            value: "220"
           - name: access-control-allow-credentials
             value: "true"
           - name: access-control-allow-origin
@@ -664,8 +664,8 @@ log:
         redirectURL: ""
         status: 200
         statusText: OK
-      startedDateTime: 2024-09-10T13:49:08.469Z
-      time: 226
+      startedDateTime: 2024-09-17T05:17:31.438Z
+      time: 308
       timings:
         blocked: -1
         connect: -1
@@ -673,7 +673,7 @@ log:
         receive: 0
         send: 0
         ssl: -1
-        wait: 226
+        wait: 308
     - _id: 9fdf3418a505d251116e020fda591c55
       _order: 0
       cache: {}
@@ -702,7 +702,7 @@ log:
             value: sourcegraph.dotcom
           - name: x-mitm-auth-token-name
             value: sourcegraph.dotcom
-        headersSize: 557
+        headersSize: 630
         httpVersion: HTTP/1.1
         method: POST
         postData:
@@ -734,12 +734,12 @@ log:
           size: 194
           text: "{\"data\":{\"currentUser\":{\"codySubscription\":{\"status\":\"ACTIVE\",\
             \"plan\":\"PRO\",\"applyProRateLimits\":true,\"currentPeriodStartAt\
-            \":\"2024-08-14T22:11:32Z\",\"currentPeriodEndAt\":\"2024-09-14T22:\
+            \":\"2024-09-14T22:11:32Z\",\"currentPeriodEndAt\":\"2024-10-14T22:\
             11:32Z\"}}}}"
         cookies: []
         headers:
           - name: date
-            value: Tue, 10 Sep 2024 13:49:09 GMT
+            value: Tue, 17 Sep 2024 05:17:32 GMT
           - name: content-type
             value: application/json
           - name: content-length
@@ -747,7 +747,7 @@ log:
           - name: connection
             value: close
           - name: retry-after
-            value: "155"
+            value: "220"
           - name: access-control-allow-credentials
             value: "true"
           - name: access-control-allow-origin
@@ -770,8 +770,8 @@ log:
         redirectURL: ""
         status: 200
         statusText: OK
-      startedDateTime: 2024-09-10T13:49:08.753Z
-      time: 351
+      startedDateTime: 2024-09-17T05:17:31.751Z
+      time: 289
       timings:
         blocked: -1
         connect: -1
@@ -779,7 +779,7 @@ log:
         receive: 0
         send: 0
         ssl: -1
-        wait: 351
+        wait: 289
     - _id: 39fe3efa22c727dff9fd6b923a145b81
       _order: 0
       cache: {}
@@ -843,7 +843,7 @@ log:
         cookies: []
         headers:
           - name: date
-            value: Tue, 10 Sep 2024 13:49:11 GMT
+            value: Tue, 17 Sep 2024 05:17:34 GMT
           - name: content-type
             value: application/json
           - name: content-length
@@ -851,7 +851,7 @@ log:
           - name: connection
             value: close
           - name: retry-after
-            value: "600"
+            value: "218"
           - name: access-control-allow-credentials
             value: "true"
           - name: access-control-allow-origin
@@ -874,8 +874,8 @@ log:
         redirectURL: ""
         status: 200
         statusText: OK
-      startedDateTime: 2024-09-10T13:49:10.757Z
-      time: 248
+      startedDateTime: 2024-09-17T05:17:34.074Z
+      time: 145
       timings:
         blocked: -1
         connect: -1
@@ -883,7 +883,105 @@ log:
         receive: 0
         send: 0
         ssl: -1
-        wait: 248
+        wait: 145
+    - _id: 34f0242529b88d6ed08202747e213ebd
+      _order: 0
+      cache: {}
+      request:
+        bodySize: 144
+        cookies: []
+        headers:
+          - name: connection
+            value: close
+          - name: host
+            value: sourcegraph.com
+          - name: accept-encoding
+            value: identity
+          - name: user-agent
+            value: node-fetch/1.0 (+https://github.com/bitinn/node-fetch)
+          - name: content-length
+            value: "144"
+          - name: accept
+            value: "*/*"
+          - name: content-type
+            value: application/json; charset=utf-8
+          - name: authorization
+            value: token
+              REDACTED_5313821e901984ba7bbf1999deafb5f6f722c05ed13b6dfa6cffbd6128089e39
+          - name: x-mitm-proxy-name
+            value: sourcegraph.dotcom
+          - name: x-mitm-auth-token-name
+            value: sourcegraph.dotcom
+        headersSize: 613
+        httpVersion: HTTP/1.1
+        method: POST
+        postData:
+          mimeType: application/json; charset=utf-8
+          params: []
+          textJSON:
+            query: |-
+              
+              query Repository($name: String!) {
+              	repository(name: $name) {
+              		id
+              	}
+              }
+            variables:
+              name: github.com/sourcegraph/cody
+        queryString:
+          - name: Repository
+            value: null
+        url: https://sourcegraph.com/.api/graphql?Repository
+      response:
+        bodySize: 61
+        content:
+          mimeType: application/json
+          size: 61
+          text: "{\"data\":{\"repository\":{\"id\":\"UmVwb3NpdG9yeTo2MTMyNTMyOA==\"}}}"
+        cookies: []
+        headers:
+          - name: date
+            value: Tue, 17 Sep 2024 05:17:34 GMT
+          - name: content-type
+            value: application/json
+          - name: content-length
+            value: "61"
+          - name: connection
+            value: close
+          - name: retry-after
+            value: "218"
+          - name: access-control-allow-credentials
+            value: "true"
+          - name: access-control-allow-origin
+            value: ""
+          - name: cache-control
+            value: no-cache, max-age=0
+          - name: vary
+            value: Cookie,Accept-Encoding,Authorization,Cookie, Authorization,
+              X-Requested-With,Cookie
+          - name: x-content-type-options
+            value: nosniff
+          - name: x-frame-options
+            value: DENY
+          - name: x-xss-protection
+            value: 1; mode=block
+          - name: strict-transport-security
+            value: max-age=31536000; includeSubDomains; preload
+        headersSize: 1403
+        httpVersion: HTTP/1.1
+        redirectURL: ""
+        status: 200
+        statusText: OK
+      startedDateTime: 2024-09-17T05:17:34.230Z
+      time: 129
+      timings:
+        blocked: -1
+        connect: -1
+        dns: -1
+        receive: 0
+        send: 0
+        ssl: -1
+        wait: 129
     - _id: a4f06f44ac6627e56ffe62ff40b4aaa9
       _order: 0
       cache: {}
@@ -936,12 +1034,12 @@ log:
         content:
           mimeType: application/json
           size: 73
-          text: "{\"data\":{\"site\":{\"productVersion\":\"290746_2024-09-10_5.7-5c5c14be\
-            9d78\"}}}"
+          text: "{\"data\":{\"site\":{\"productVersion\":\"291267_2024-09-13_5.7-c635b228\
+            7985\"}}}"
         cookies: []
         headers:
           - name: date
-            value: Tue, 10 Sep 2024 13:49:08 GMT
+            value: Tue, 17 Sep 2024 05:17:31 GMT
           - name: content-type
             value: application/json
           - name: content-length
@@ -949,7 +1047,7 @@ log:
           - name: connection
             value: close
           - name: retry-after
-            value: "155"
+            value: "220"
           - name: access-control-allow-credentials
             value: "true"
           - name: access-control-allow-origin
@@ -972,8 +1070,8 @@ log:
         redirectURL: ""
         status: 200
         statusText: OK
-      startedDateTime: 2024-09-10T13:49:08.436Z
-      time: 257
+      startedDateTime: 2024-09-17T05:17:31.405Z
+      time: 275
       timings:
         blocked: -1
         connect: -1
@@ -981,6 +1079,6 @@ log:
         receive: 0
         send: 0
         ssl: -1
-        wait: 257
+        wait: 275
   pages: []
   version: "1.2"

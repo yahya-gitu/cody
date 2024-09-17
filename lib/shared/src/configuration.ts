@@ -76,6 +76,12 @@ interface RawClientConfiguration {
     autocompleteExperimentalPreloadDebounceInterval?: number
 
     /**
+     * Antipattern settings
+     */
+    'antipattern:serverEndpoint'?: string
+    'antipattern:accessToken'?: string
+
+    /**
      * Hidden settings
      */
     hasNativeWebview: boolean

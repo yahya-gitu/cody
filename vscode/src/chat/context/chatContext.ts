@@ -15,7 +15,9 @@ import {
     mentionProvidersMetadata,
     openCtx,
     promiseFactoryToObservable,
+    telemetryEvents,
 } from '@sourcegraph/cody-shared'
+import { LRUCache } from 'lru-cache'
 import { Observable, map } from 'observable-fns'
 import * as vscode from 'vscode'
 import { URI } from 'vscode-uri'
@@ -32,33 +34,15 @@ import {
 } from '../../repository/repo-metadata-from-git-api'
 import type { ChatModel } from '../chat-view/ChatModel'
 
-// interface GetContextItemsTelemetry {
-//     empty: () => void
-//     withProvider: (type: MentionQuery['provider'], metadata?: { id: string }) => void
-// }
-
+/**
+ * This state is used to keep track of telemetry events that have already fired
+ */
+const mentionMenuTelemetryCache = new LRUCache<string | number, Set<string | null>>({ max: 10 })
 export function getMentionMenuData(options: {
     disableProviders: ContextMentionProviderID[]
     query: MentionQuery
     chatModel: ChatModel
 }): Observable<MentionMenuData> {
-    // const scopedTelemetryRecorder: GetContextItemsTelemetry = {
-    //     empty: () => {
-    //         // // On initial render the previousProvider would be undefined, but then we return null
-    //         // // This ensures that we only render the initial "select"
-    //         // if (options.query.previousProvider === null) {
-    //         //     return
-    //         // }
-    //         telemetryEvents['cody.at-mention/selected'].record('chat')
-    //     },
-    //     withProvider: (provider, providerMetadata) => {
-    //         // if (options.query.previousProvider === provider) {
-    //         //     return
-    //         // }
-    //         telemetryEvents['cody.at-mention/selected'].record('chat', provider, providerMetadata)
-    //     },
-    // }
-
     const isCodyWeb = getConfiguration().agentIDE === CodyIDE.Web
 
     const { input, context } = options.chatModel.contextWindow
@@ -86,10 +70,24 @@ export function getMentionMenuData(options: {
                 ? mentionProvidersMetadata({ disableProviders: options.disableProviders })
                 : Observable.of([])
         ).pipe(map(providers => providers.filter(p => p.title.toLowerCase().includes(queryLower))))
-        return combineLatest([providers, items]).map(([providers, items]) => ({
+
+        const results = combineLatest([providers, items]).map(([providers, items]) => ({
             providers,
             items,
         }))
+
+        //telemetry
+        if (options.query.interactionID !== null && options.query.interactionID !== undefined) {
+            const cache =
+                mentionMenuTelemetryCache.get(options.query.interactionID) ?? new Set<string | null>()
+            if (!cache.has(options.query.provider)) {
+                cache.add(options.query.provider)
+                telemetryEvents['cody.at-mention/selected'].record('chat', options.query.provider)
+            }
+            mentionMenuTelemetryCache.set(options.query.interactionID, cache)
+        }
+
+        return results
     } catch (error) {
         if (isAbortError(error)) {
             throw error // rethrow as-is so it gets ignored by our caller

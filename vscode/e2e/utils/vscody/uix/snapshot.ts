@@ -104,6 +104,9 @@ export namespace Normalizers {
                     case 'number':
                         _.set(draft, path, value > 0 ? 1 : value < 0 ? -1 : 0)
                         break
+                    case 'object':
+                        _.set(draft, path, '<Object>')
+                        break
                 }
             }
             return draft

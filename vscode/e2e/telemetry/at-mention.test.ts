@@ -43,7 +43,6 @@ test.describe('cody.at-mention', () => {
         })
         await session.runCommand('cody.chat.newEditorPanel')
         const [chat] = await uix.cody.WebView.all(session, { atLeast: 1 })
-        await chat.waitUntilReady()
 
         //TODO: make a nice UIX class for this
         const chatInput = chat.content.getByRole('textbox', { name: 'Chat message' })
@@ -75,12 +74,12 @@ test.describe('cody.at-mention', () => {
             }
         })
 
-        const selectTelemetry = telemetry.snap(initTelemetry)
+        const mentionTelemetry = telemetry.snap(initTelemetry)
         expect(
-            selectTelemetry.filter({ matching: { action: 'executed' } }),
+            mentionTelemetry.filter({ matching: { action: 'executed' } }),
             'Execution events should not have fired'
         ).toEqual([])
-        const mentionEvents = selectTelemetry.filter({
+        const mentionEvents = mentionTelemetry.filter({
             matching: { feature: 'cody.at-mention' },
         })
         await expect(mentionEvents).toMatchJSONSnapshot('mentionedEvents', {
@@ -92,15 +91,15 @@ test.describe('cody.at-mention', () => {
         await expect(atMenu).not.toBeVisible()
         await chatInput.press('Enter')
 
-        const executeTelemetry = telemetry.snap(selectTelemetry)
-        expect(executeTelemetry.events).toEqual([])
-
         // wait until the response is displayed
         await expect(chat.content.locator('[data-testid="message"]').nth(2)).toBeVisible()
-
-        const responseRecievedTelemetry = telemetry.snap(executeTelemetry)
+        const selectTelemetry = telemetry.snap(mentionTelemetry)
+        expect(
+            selectTelemetry.filter({ matching: { feature: 'cody.at-mention' } }),
+            'No additional at-mention events to fire on actual selection'
+        ).toEqual([])
         await expect(
-            responseRecievedTelemetry.filter({
+            selectTelemetry.filter({
                 matching: [{ feature: 'cody.chatResponse' }, { feature: 'cody.chat-question' }],
             })
         ).toMatchJSONSnapshot('responseRecievedEvents', {

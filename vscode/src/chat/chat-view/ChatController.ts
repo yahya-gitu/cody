@@ -2,7 +2,6 @@ import * as uuid from 'uuid'
 import * as vscode from 'vscode'
 
 import {
-    type AuthStatus,
     type BillingCategory,
     type BillingProduct,
     CHAT_OUTPUT_TOKEN_BUDGET,
@@ -19,7 +18,6 @@ import {
     type EventSource,
     FeatureFlag,
     type Guardrails,
-    type MentionQuery,
     type Message,
     ModelUsage,
     PromptString,
@@ -833,14 +831,6 @@ export class ChatController implements vscode.Disposable, vscode.WebviewViewProv
                         }
                     )
 
-                    // void this.sendChatExecutedTelemetry(
-                    //     span,
-                    //     firstTokenSpan,
-                    //     inputText,
-                    //     sharedProperties,
-                    //     context
-                    // )
-
                     signal.throwIfAborted()
                     this.streamAssistantResponse(requestID, prompt, span, firstTokenSpan, signal)
                 } catch (error) {
@@ -1606,7 +1596,6 @@ export class ChatController implements vscode.Disposable, vscode.WebviewViewProv
             )
         )
 
-        let previousMentionMenuDataQuery: MentionQuery | undefined = undefined
         // Listen for API calls from the webview.
         this.disposables.push(
             addMessageListenersForExtensionAPI(
@@ -1620,17 +1609,12 @@ export class ChatController implements vscode.Disposable, vscode.WebviewViewProv
                 }),
                 {
                     mentionMenuData: query => {
-                        const results = getMentionMenuData({
+                        return getMentionMenuData({
                             disableProviders:
                                 this.extensionClient.capabilities?.disabledMentionsProviders || [],
                             query: query,
                             chatModel: this.chatModel,
                         })
-                        if (query.provider !== previousMentionMenuDataQuery?.provider ?? null) {
-                            telemetryEvents['cody.at-mention/selected'].record('chat', query.provider)
-                        }
-                        previousMentionMenuDataQuery = query
-                        return results
                     },
                     evaluatedFeatureFlag: flag => featureFlagProvider.evaluatedFeatureFlag(flag),
                     prompts: query =>
