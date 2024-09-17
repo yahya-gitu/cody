@@ -5,7 +5,6 @@ import {
     type AuthStatus,
     type BillingCategory,
     type BillingProduct,
-    CHAT_INPUT_TOKEN_BUDGET,
     CHAT_OUTPUT_TOKEN_BUDGET,
     type ChatClient,
     type ChatMessage,
@@ -20,6 +19,7 @@ import {
     type EventSource,
     FeatureFlag,
     type Guardrails,
+    type MentionQuery,
     type Message,
     ModelUsage,
     PromptString,
@@ -54,6 +54,7 @@ import {
     resolvedConfig,
     serializeChatMessage,
     startWith,
+    telemetryEvents,
     telemetryRecorder,
     tracer,
     truncatePromptString,
@@ -68,7 +69,7 @@ import {
     promiseToObservable,
     subscriptionDisposable,
 } from '@sourcegraph/cody-shared/src/misc/observable'
-import { TokenCounterUtils } from '@sourcegraph/cody-shared/src/token/counter'
+import { getTokenCounterUtils } from '@sourcegraph/cody-shared/src/token/counter'
 import type { TelemetryEventParameters } from '@sourcegraph/telemetry'
 import { map } from 'observable-fns'
 import type { URI } from 'vscode-uri'
@@ -694,21 +695,30 @@ export class ChatController implements vscode.Disposable, vscode.WebviewViewProv
         return tracer.startActiveSpan('chat.submit', async (span): Promise<void> => {
             span.setAttribute('sampled', true)
             const authStatus = currentAuthStatusAuthed()
-            const sharedProperties = {
+
+            const { isPublic: isPublicRepo, repoMetadata } =
+                (await workspaceReposMonitor?.getRepoMetadataIfPublic?.()) ?? { isPublic: false }
+            const telemetryProperties = {
                 requestID,
                 chatModel: this.chatModel.modelID,
+                authStatus,
                 source,
                 command,
-                traceId: span.spanContext().traceId,
                 sessionID: this.chatModel.sessionID,
                 addEnhancedContext: legacyAddEnhancedContext,
-            }
-            await this.recordChatQuestionTelemetryEvent(
-                authStatus,
-                legacyAddEnhancedContext,
-                mentions,
-                sharedProperties,
-                inputText
+                isPublicRepo,
+                repoMetadata,
+                traceId: span.spanContext().traceId,
+                promptText: inputText,
+            } as const
+            const tokenCounterUtils = await getTokenCounterUtils()
+
+            telemetryEvents['cody.chat-question/submitted'].record(
+                {
+                    ...telemetryProperties,
+                    mentions,
+                },
+                tokenCounterUtils
             )
 
             tracer.startActiveSpan('chat.submit.firstToken', async (firstTokenSpan): Promise<void> => {
@@ -811,13 +821,25 @@ export class ChatController implements vscode.Disposable, vscode.WebviewViewProv
                         contextAlternatives
                     )
 
-                    void this.sendChatExecutedTelemetry(
-                        span,
-                        firstTokenSpan,
-                        inputText,
-                        sharedProperties,
-                        context
+                    telemetryEvents['cody.chat-question/executed'].record(
+                        {
+                            ...telemetryProperties,
+                            context,
+                        },
+                        {
+                            addMetadata: true,
+                            current: span,
+                            firstToken: firstTokenSpan,
+                        }
                     )
+
+                    // void this.sendChatExecutedTelemetry(
+                    //     span,
+                    //     firstTokenSpan,
+                    //     inputText,
+                    //     sharedProperties,
+                    //     context
+                    // )
 
                     signal.throwIfAborted()
                     this.streamAssistantResponse(requestID, prompt, span, firstTokenSpan, signal)
@@ -875,61 +897,6 @@ export class ChatController implements vscode.Disposable, vscode.WebviewViewProv
 
         void this.saveSession()
         this.postViewTranscript()
-    }
-
-    private async sendChatExecutedTelemetry(
-        span: Span,
-        firstTokenSpan: Span,
-        inputText: PromptString,
-        sharedProperties: any,
-        context: PromptInfo['context']
-    ): Promise<void> {
-        const authStatus = currentAuthStatus()
-
-        // Create a summary of how many code snippets of each context source are being
-        // included in the prompt
-        const contextSummary: { [key: string]: number } = {}
-        for (const { source } of context.used) {
-            if (!source) {
-                continue
-            }
-            if (contextSummary[source]) {
-                contextSummary[source] += 1
-            } else {
-                contextSummary[source] = 1
-            }
-        }
-        const privateContextSummary = await this.buildPrivateContextSummary(context)
-
-        const properties = {
-            ...sharedProperties,
-            traceId: span.spanContext().traceId,
-        }
-        span.setAttributes(properties)
-        firstTokenSpan.setAttributes(properties)
-
-        telemetryRecorder.recordEvent('cody.chat-question', 'executed', {
-            metadata: {
-                ...contextSummary,
-                // Flag indicating this is a transcript event to go through ML data pipeline. Only for DotCom users
-                // See https://github.com/sourcegraph/sourcegraph/pull/59524
-                recordsPrivateMetadataTranscript: isDotCom(authStatus) ? 1 : 0,
-            },
-            privateMetadata: {
-                properties,
-                privateContextSummary: privateContextSummary,
-                // 🚨 SECURITY: chat transcripts are to be included only for DotCom users AND for V2 telemetry
-                // V2 telemetry exports privateMetadata only for DotCom users
-                // the condition below is an additional safeguard measure
-                promptText:
-                    isDotCom(authStatus) &&
-                    (await truncatePromptString(inputText, CHAT_INPUT_TOKEN_BUDGET)),
-            },
-            billingMetadata: {
-                product: 'cody',
-                category: 'core',
-            },
-        })
     }
 
     private async computeContext(
@@ -1297,42 +1264,6 @@ export class ChatController implements vscode.Disposable, vscode.WebviewViewProv
         return { prompt, context }
     }
 
-    private async buildPrivateContextSummary(context: {
-        used: ContextItem[]
-        ignored: ContextItem[]
-    }): Promise<object> {
-        // 🚨 SECURITY: included only for dotcom users & public repos
-        if (!isDotCom(currentAuthStatus())) {
-            return {}
-        }
-        if (!workspaceReposMonitor) {
-            return {}
-        }
-
-        const { isPublic, repoMetadata: gitMetadata } =
-            await workspaceReposMonitor.getRepoMetadataIfPublic()
-        if (!isPublic) {
-            return {}
-        }
-
-        const getContextSummary = async (items: ContextItem[]) => ({
-            count: items.length,
-            items: await Promise.all(
-                items.map(async i => ({
-                    source: i.source,
-                    size: i.size || (await TokenCounterUtils.countTokens(i.content || '')),
-                    content: i.content,
-                }))
-            ),
-        })
-
-        return {
-            included: await getContextSummary(context.used),
-            excluded: await getContextSummary(context.ignored),
-            gitMetadata,
-        }
-    }
-
     private streamAssistantResponse(
         requestID: string,
         prompt: Message[],
@@ -1675,6 +1606,7 @@ export class ChatController implements vscode.Disposable, vscode.WebviewViewProv
             )
         )
 
+        let previousMentionMenuDataQuery: MentionQuery | undefined = undefined
         // Listen for API calls from the webview.
         this.disposables.push(
             addMessageListenersForExtensionAPI(
@@ -1687,13 +1619,19 @@ export class ChatController implements vscode.Disposable, vscode.WebviewViewProv
                     },
                 }),
                 {
-                    mentionMenuData: query =>
-                        getMentionMenuData({
+                    mentionMenuData: query => {
+                        const results = getMentionMenuData({
                             disableProviders:
                                 this.extensionClient.capabilities?.disabledMentionsProviders || [],
                             query: query,
                             chatModel: this.chatModel,
-                        }),
+                        })
+                        if (query.provider !== previousMentionMenuDataQuery?.provider ?? null) {
+                            telemetryEvents['cody.at-mention/selected'].record('chat', query.provider)
+                        }
+                        previousMentionMenuDataQuery = query
+                        return results
+                    },
                     evaluatedFeatureFlag: flag => featureFlagProvider.evaluatedFeatureFlag(flag),
                     prompts: query =>
                         promiseFactoryToObservable(signal =>
@@ -1765,82 +1703,6 @@ export class ChatController implements vscode.Disposable, vscode.WebviewViewProv
 
     public isVisible(): boolean {
         return this.webviewPanelOrView?.visible ?? false
-    }
-
-    private async recordChatQuestionTelemetryEvent(
-        authStatus: AuthStatus,
-        legacyAddEnhancedContext: boolean,
-        mentions: ContextItem[],
-        sharedProperties: any,
-        inputText: PromptString
-    ): Promise<void> {
-        const mentionsInInitialContext = mentions.filter(item => item.source !== ContextItemSource.User)
-        const mentionsByUser = mentions.filter(item => item.source === ContextItemSource.User)
-
-        let gitMetadata = ''
-        if (workspaceReposMonitor) {
-            const { isPublic: isWorkspacePublic, repoMetadata } =
-                await workspaceReposMonitor.getRepoMetadataIfPublic()
-            if (isDotCom(authStatus) && legacyAddEnhancedContext && isWorkspacePublic) {
-                gitMetadata = JSON.stringify(repoMetadata)
-            }
-        }
-        telemetryRecorder.recordEvent('cody.chat-question', 'submitted', {
-            metadata: {
-                // Flag indicating this is a transcript event to go through ML data pipeline. Only for DotCom users
-                // See https://github.com/sourcegraph/sourcegraph/pull/59524
-                recordsPrivateMetadataTranscript: authStatus.endpoint && isDotCom(authStatus) ? 1 : 0,
-                addEnhancedContext: legacyAddEnhancedContext ? 1 : 0,
-
-                // All mentions
-                mentionsTotal: mentions.length,
-                mentionsOfRepository: mentions.filter(item => item.type === 'repository').length,
-                mentionsOfTree: mentions.filter(item => item.type === 'tree').length,
-                mentionsOfWorkspaceRootTree: mentions.filter(
-                    item => item.type === 'tree' && item.isWorkspaceRoot
-                ).length,
-                mentionsOfFile: mentions.filter(item => item.type === 'file').length,
-
-                // Initial context mentions
-                mentionsInInitialContext: mentionsInInitialContext.length,
-                mentionsInInitialContextOfRepository: mentionsInInitialContext.filter(
-                    item => item.type === 'repository'
-                ).length,
-                mentionsInInitialContextOfTree: mentionsInInitialContext.filter(
-                    item => item.type === 'tree'
-                ).length,
-                mentionsInInitialContextOfWorkspaceRootTree: mentionsInInitialContext.filter(
-                    item => item.type === 'tree' && item.isWorkspaceRoot
-                ).length,
-                mentionsInInitialContextOfFile: mentionsInInitialContext.filter(
-                    item => item.type === 'file'
-                ).length,
-
-                // Explicit mentions by user
-                mentionsByUser: mentionsByUser.length,
-                mentionsByUserOfRepository: mentionsByUser.filter(item => item.type === 'repository')
-                    .length,
-                mentionsByUserOfTree: mentionsByUser.filter(item => item.type === 'tree').length,
-                mentionsByUserOfWorkspaceRootTree: mentionsByUser.filter(
-                    item => item.type === 'tree' && item.isWorkspaceRoot
-                ).length,
-                mentionsByUserOfFile: mentionsByUser.filter(item => item.type === 'file').length,
-            },
-            privateMetadata: {
-                ...sharedProperties,
-                // 🚨 SECURITY: chat transcripts are to be included only for DotCom users AND for V2 telemetry
-                // V2 telemetry exports privateMetadata only for DotCom users
-                // the condition below is an additional safeguard measure
-                promptText:
-                    isDotCom(authStatus) &&
-                    (await truncatePromptString(inputText, CHAT_INPUT_TOKEN_BUDGET)),
-                gitMetadata,
-            },
-            billingMetadata: {
-                product: 'cody',
-                category: 'billable',
-            },
-        })
     }
 }
 

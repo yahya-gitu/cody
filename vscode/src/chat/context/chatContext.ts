@@ -15,7 +15,6 @@ import {
     mentionProvidersMetadata,
     openCtx,
     promiseFactoryToObservable,
-    telemetryEvents,
 } from '@sourcegraph/cody-shared'
 import { Observable, map } from 'observable-fns'
 import * as vscode from 'vscode'
@@ -33,24 +32,32 @@ import {
 } from '../../repository/repo-metadata-from-git-api'
 import type { ChatModel } from '../chat-view/ChatModel'
 
-interface GetContextItemsTelemetry {
-    empty: () => void
-    withProvider: (type: MentionQuery['provider'], metadata?: { id: string }) => void
-}
+// interface GetContextItemsTelemetry {
+//     empty: () => void
+//     withProvider: (type: MentionQuery['provider'], metadata?: { id: string }) => void
+// }
 
 export function getMentionMenuData(options: {
     disableProviders: ContextMentionProviderID[]
     query: MentionQuery
     chatModel: ChatModel
 }): Observable<MentionMenuData> {
-    const scopedTelemetryRecorder: GetContextItemsTelemetry = {
-        empty: () => {
-            telemetryEvents['cody.at-mention/selected'].record('chat')
-        },
-        withProvider: (provider, providerMetadata) => {
-            telemetryEvents['cody.at-mention/selected'].record('chat', provider, providerMetadata)
-        },
-    }
+    // const scopedTelemetryRecorder: GetContextItemsTelemetry = {
+    //     empty: () => {
+    //         // // On initial render the previousProvider would be undefined, but then we return null
+    //         // // This ensures that we only render the initial "select"
+    //         // if (options.query.previousProvider === null) {
+    //         //     return
+    //         // }
+    //         telemetryEvents['cody.at-mention/selected'].record('chat')
+    //     },
+    //     withProvider: (provider, providerMetadata) => {
+    //         // if (options.query.previousProvider === provider) {
+    //         //     return
+    //         // }
+    //         telemetryEvents['cody.at-mention/selected'].record('chat', provider, providerMetadata)
+    //     },
+    // }
 
     const isCodyWeb = getConfiguration().agentIDE === CodyIDE.Web
 
@@ -61,7 +68,6 @@ export function getMentionMenuData(options: {
             getChatContextItemsForMention(
                 {
                     mentionQuery: options.query,
-                    telemetryRecorder: scopedTelemetryRecorder,
                     rangeFilter: !isCodyWeb,
                 },
                 signal
@@ -94,11 +100,6 @@ export function getMentionMenuData(options: {
 
 interface GetContextItemsOptions {
     mentionQuery: MentionQuery
-
-    // Logging: log when the at-mention starts, and then log when we know the type (after the 1st
-    // character is typed). Don't log otherwise because we would be logging prefixes of the same
-    // query repeatedly, which is not needed.
-    telemetryRecorder?: GetContextItemsTelemetry
     rangeFilter?: boolean
 }
 
@@ -107,14 +108,12 @@ export async function getChatContextItemsForMention(
     _?: AbortSignal
 ): Promise<ContextItem[]> {
     const MAX_RESULTS = 20
-    const { mentionQuery, telemetryRecorder, rangeFilter = true } = options
+    const { mentionQuery, rangeFilter = true } = options
 
     switch (mentionQuery.provider) {
         case null:
-            telemetryRecorder?.empty()
             return getOpenTabsContextFile()
         case SYMBOL_CONTEXT_MENTION_PROVIDER.id:
-            telemetryRecorder?.withProvider(mentionQuery.provider)
             // It would be nice if the VS Code symbols API supports cancellation, but it doesn't
             return getSymbolContextFiles(
                 mentionQuery.text,
@@ -122,7 +121,6 @@ export async function getChatContextItemsForMention(
                 mentionQuery.contextRemoteRepositoriesNames
             )
         case FILE_CONTEXT_MENTION_PROVIDER.id: {
-            telemetryRecorder?.withProvider(mentionQuery.provider)
             const files = mentionQuery.text
                 ? await getFileContextFiles({
                       query: mentionQuery.text,
@@ -146,8 +144,6 @@ export async function getChatContextItemsForMention(
         }
 
         default: {
-            telemetryRecorder?.withProvider('openctx', { id: mentionQuery.provider })
-
             if (!openCtx.controller) {
                 return []
             }

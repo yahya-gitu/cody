@@ -13,7 +13,11 @@ export const expect = {
         received: T,
         snapshotName: string,
         options?: {
-            normalizers?: ((obj: any) => any)[]
+            /**
+             * Normalizers are applied in order and use immerjs to isolate changes from the original
+             * If a array is passed, each element will be normalized individually.
+             */
+            normalizers?: ((obj: object) => any)[]
         }
     ): Promise<MatcherReturnType> {
         const name = 'toMatchJSONSnapshot'
@@ -22,9 +26,11 @@ export const expect = {
         }
 
         const testInfo = test.info() as TestInfo & { _projectInternal: any }
-        let normalized = received
+        let normalized: any = received
         for (const normalizer of options?.normalizers ?? []) {
-            normalized = produce(normalized, normalizer)
+            normalized = _.isArray(normalized)
+                ? normalized.map(v => produce(v, normalizer))
+                : produce(normalized, normalizer)
         }
 
         const serialized = JSON.stringify(normalized, null, 2)
@@ -62,6 +68,7 @@ export const expect = {
         }
 
         if (updateSnapshots || !exists) {
+            await fs.mkdir(snapshotDir, { recursive: true })
             await fs.writeFile(snapshotPath, serialized)
         }
 
@@ -83,6 +90,23 @@ export namespace Normalizers {
         (...paths: string[]) =>
         (draft: any) => {
             return _.omit(draft, ...paths)
+        }
+
+    export const blank =
+        (...paths: string[]) =>
+        (draft: any) => {
+            for (const path of paths) {
+                const value = _.get(draft, path)
+                switch (typeof value) {
+                    case 'string':
+                        _.set(draft, path, value.length > 0 ? '<string>' : '<blank-string>')
+                        break
+                    case 'number':
+                        _.set(draft, path, value > 0 ? 1 : value < 0 ? -1 : 0)
+                        break
+                }
+            }
+            return draft
         }
 
     export const fixedDates =
@@ -118,8 +142,9 @@ export namespace Normalizers {
         return (draft: any) => {
             const item = _.get(draft, path)
             if (_.isArray(item)) {
-                const sorted: any[] = _.sortBy(item, ...args)
-                item.sort((a, b) => sorted.indexOf(a) - sorted.indexOf(b))
+                const sorted = _.sortBy(item, ...args)
+                _.set(draft, path, sorted)
+                // item.splice(0, item.length, ...sorted)
             }
             return draft
         }

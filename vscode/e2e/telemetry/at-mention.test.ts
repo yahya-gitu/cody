@@ -38,6 +38,9 @@ test.describe('cody.at-mention', () => {
             })
         })
 
+        const telemetry = uix.telemetry.TelemetrySnapshot.fromNow({
+            telemetryRecorder,
+        })
         await session.runCommand('cody.chat.newEditorPanel')
         const [chat] = await uix.cody.WebView.all(session, { atLeast: 1 })
         await chat.waitUntilReady()
@@ -45,50 +48,79 @@ test.describe('cody.at-mention', () => {
         //TODO: make a nice UIX class for this
         const chatInput = chat.content.getByRole('textbox', { name: 'Chat message' })
         await expect(chatInput).toBeVisible()
-        const telemetry = uix.telemetry.TelemetrySnapshot.fromNow({
-            telemetryRecorder,
+
+        const initTelemetry = telemetry.snap()
+        // We don't want to have any at mention events triggered by default.
+        // They should only trigger if we actually show the mention-menu. we
+        expect(
+            initTelemetry.filter({ matching: { feature: 'cody.at-mention', action: 'selected' } })
+        ).toEqual([])
+
+        const atMenu = chat.content.locator('[data-at-mention-menu]')
+
+        // We fill the query a few times to make sure we don't see double firings
+        await test.step('Trigger and fill at-menu', async () => {
+            await chatInput.fill('@')
+            await expect(atMenu).toBeVisible()
+            await atMenu.locator('[data-value="provider:file"]').click()
+            await expect(
+                atMenu.locator('[data-value^="[\\"file\\""]').locator('[title="buzz.ts"]')
+            ).toBeVisible()
+            await chatInput.pressSequentially('error', { delay: 5 })
+            await expect(
+                atMenu.locator('[data-value^="[\\"file\\""]').locator('[title="error.ts"]')
+            ).toBeVisible()
+            for (let i = 0; i < 'error'.length; i++) {
+                await chatInput.press('Backspace')
+            }
         })
-        await chatInput.fill('@')
 
-        const atMenu = await chat.content.locator('[data-at-mention-menu]')
-        await expect(atMenu).toBeVisible()
-        await atMenu.locator('[data-value="provider:file"]').click()
-
-        await expect(atMenu.locator('[data-value^="[\\"file\\""]').first()).toBeVisible()
-        // we need to wait for some telemetry events to come in
-        const selectTelemetry = telemetry.snap()
-
+        const selectTelemetry = telemetry.snap(initTelemetry)
         expect(
             selectTelemetry.filter({ matching: { action: 'executed' } }),
             'Execution events should not have fired'
         ).toEqual([])
-        const [mentionEvent, fileEvent, ...otherEvents] = selectTelemetry.filter({
-            matching: { feature: 'cody.at-mention', action: 'selected' },
+        const mentionEvents = selectTelemetry.filter({
+            matching: { feature: 'cody.at-mention' },
         })
-        expect(otherEvents).toEqual([])
-        await expect(mentionEvent.event).toMatchJSONSnapshot('mentionEvent', {
-            normalizers: snapshotNormalizers,
-        })
-        await expect(fileEvent.event).toMatchJSONSnapshot('fileEvent', {
+        await expect(mentionEvents).toMatchJSONSnapshot('mentionedEvents', {
             normalizers: snapshotNormalizers,
         })
 
         // we now ensure that the event did fire if we do select a file
-        await atMenu.locator('[data-value^="[\\"file\\""]').first().click()
+        await atMenu.locator('[data-value^="[\\"file\\""]').locator('[title="buzz.ts"]').click()
         await expect(atMenu).not.toBeVisible()
         await chatInput.press('Enter')
 
-        //@ts-ignore
         const executeTelemetry = telemetry.snap(selectTelemetry)
+        expect(executeTelemetry.events).toEqual([])
 
-        // finally we check some global conditions
+        // wait until the response is displayed
+        await expect(chat.content.locator('[data-testid="message"]').nth(2)).toBeVisible()
 
-        telemetry.stop()
+        const responseRecievedTelemetry = telemetry.snap(executeTelemetry)
+        await expect(
+            responseRecievedTelemetry.filter({
+                matching: [{ feature: 'cody.chatResponse' }, { feature: 'cody.chat-question' }],
+            })
+        ).toMatchJSONSnapshot('responseRecievedEvents', {
+            normalizers: snapshotNormalizers,
+        })
     })
 })
 
 const snapshotNormalizers = [
+    uix.snapshot.Normalizers.pick('event', 'proxyName'),
     uix.snapshot.Normalizers.sortKeysDeep,
-    uix.snapshot.Normalizers.sortPathBy('parameters.metadata', 'key'),
-    uix.snapshot.Normalizers.omit('source.clientVersion', 'timestamp'),
+    uix.snapshot.Normalizers.sortPathBy('event.parameters.metadata', 'key'),
+    uix.snapshot.Normalizers.blank(
+        'event.source.clientVersion',
+        'event.timestamp',
+        'event.parameters.privateMetadata.requestID',
+        'event.parameters.interactionID',
+        'event.parameters.privateMetadata.sessionID',
+        'event.parameters.privateMetadata.traceId',
+        'event.parameters.privateMetadata.chatModel',
+        'event.parameters.privateMetadata.gitMetadata'
+    ),
 ]

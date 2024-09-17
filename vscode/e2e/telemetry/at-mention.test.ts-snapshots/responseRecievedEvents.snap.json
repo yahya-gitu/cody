@@ -1,0 +1,359 @@
+[
+  {
+    "event": {
+      "action": "submitted",
+      "feature": "cody.chat-question",
+      "parameters": {
+        "billingMetadata": {
+          "category": "billable",
+          "product": "cody"
+        },
+        "metadata": [
+          {
+            "key": "addEnhancedContext",
+            "value": 0
+          },
+          {
+            "key": "contextSelection",
+            "value": 10
+          },
+          {
+            "key": "isPublicRepo",
+            "value": 1
+          },
+          {
+            "key": "mentions.URIs",
+            "value": 1
+          },
+          {
+            "key": "mentions.bySource.user.types.file",
+            "value": 1
+          },
+          {
+            "key": "mentions.byType.file.URIs",
+            "value": 1
+          },
+          {
+            "key": "mentions.byType.file.hasRange",
+            "value": 0
+          },
+          {
+            "key": "mentions.byType.file.isIgnored",
+            "value": 0
+          },
+          {
+            "key": "mentions.byType.file.isTooLarge",
+            "value": 0
+          },
+          {
+            "key": "mentions.byType.file.size.avg",
+            "value": 86
+          },
+          {
+            "key": "mentions.byType.file.size.max",
+            "value": 86
+          },
+          {
+            "key": "mentions.byType.file.size.median",
+            "value": 86
+          },
+          {
+            "key": "mentions.byType.file.size.min",
+            "value": 86
+          },
+          {
+            "key": "mentions.byType.file.sources.user",
+            "value": 1
+          },
+          {
+            "key": "mentions.byType.file.total",
+            "value": 1
+          },
+          {
+            "key": "mentions.hasRange",
+            "value": 0
+          },
+          {
+            "key": "mentions.isIgnored",
+            "value": 0
+          },
+          {
+            "key": "mentions.isTooLarge",
+            "value": 0
+          },
+          {
+            "key": "mentions.size.avg",
+            "value": 86
+          },
+          {
+            "key": "mentions.size.max",
+            "value": 86
+          },
+          {
+            "key": "mentions.size.median",
+            "value": 86
+          },
+          {
+            "key": "mentions.size.min",
+            "value": 86
+          },
+          {
+            "key": "mentions.total",
+            "value": 1
+          },
+          {
+            "key": "mentionsByUser",
+            "value": 1
+          },
+          {
+            "key": "mentionsByUserOfFile",
+            "value": 1
+          },
+          {
+            "key": "mentionsByUserOfRepository",
+            "value": 0
+          },
+          {
+            "key": "mentionsByUserOfTree",
+            "value": 0
+          },
+          {
+            "key": "mentionsByUserOfWorkspaceRootTree",
+            "value": 0
+          },
+          {
+            "key": "mentionsInInitialContext",
+            "value": 0
+          },
+          {
+            "key": "mentionsInInitialContextOfFile",
+            "value": 0
+          },
+          {
+            "key": "mentionsInInitialContextOfRepository",
+            "value": 0
+          },
+          {
+            "key": "mentionsInInitialContextOfTree",
+            "value": 0
+          },
+          {
+            "key": "mentionsInInitialContextOfWorkspaceRootTree",
+            "value": 0
+          },
+          {
+            "key": "mentionsOfFile",
+            "value": 1
+          },
+          {
+            "key": "mentionsOfRepository",
+            "value": 0
+          },
+          {
+            "key": "mentionsOfTree",
+            "value": 0
+          },
+          {
+            "key": "mentionsOfWorkspaceRootTree",
+            "value": 0
+          },
+          {
+            "key": "mentionsTotal",
+            "value": 1
+          },
+          {
+            "key": "recordsPrivateMetadataTranscript",
+            "value": 1
+          },
+          {
+            "key": "tier",
+            "value": 1
+          }
+        ],
+        "privateMetadata": {
+          "chatModel": "<string>",
+          "gitMetadata": "<string>",
+          "promptText": "buzz.ts ",
+          "requestID": "<string>",
+          "sessionID": "<string>",
+          "traceId": "<string>"
+        },
+        "version": 0
+      },
+      "signature": "cody.chat-question/submitted",
+      "source": {
+        "client": "VSCode.Cody",
+        "clientVersion": "<string>"
+      },
+      "timestamp": "<string>"
+    },
+    "proxyName": "sourcegraph.dotcom"
+  },
+  {
+    "event": {
+      "action": "executed",
+      "feature": "cody.chat-question",
+      "parameters": {
+        "billingMetadata": {
+          "category": "billable",
+          "product": "cody"
+        },
+        "metadata": [
+          {
+            "key": "context.used.URIs",
+            "value": 1
+          },
+          {
+            "key": "context.used.bySource.user.types.file",
+            "value": 1
+          },
+          {
+            "key": "context.used.byType.file.URIs",
+            "value": 1
+          },
+          {
+            "key": "context.used.byType.file.hasRange",
+            "value": 0
+          },
+          {
+            "key": "context.used.byType.file.isIgnored",
+            "value": 0
+          },
+          {
+            "key": "context.used.byType.file.isTooLarge",
+            "value": 0
+          },
+          {
+            "key": "context.used.byType.file.size.avg",
+            "value": 86
+          },
+          {
+            "key": "context.used.byType.file.size.max",
+            "value": 86
+          },
+          {
+            "key": "context.used.byType.file.size.median",
+            "value": 86
+          },
+          {
+            "key": "context.used.byType.file.size.min",
+            "value": 86
+          },
+          {
+            "key": "context.used.byType.file.sources.user",
+            "value": 1
+          },
+          {
+            "key": "context.used.byType.file.total",
+            "value": 1
+          },
+          {
+            "key": "context.used.hasRange",
+            "value": 0
+          },
+          {
+            "key": "context.used.isIgnored",
+            "value": 0
+          },
+          {
+            "key": "context.used.isTooLarge",
+            "value": 0
+          },
+          {
+            "key": "context.used.size.avg",
+            "value": 86
+          },
+          {
+            "key": "context.used.size.max",
+            "value": 86
+          },
+          {
+            "key": "context.used.size.median",
+            "value": 86
+          },
+          {
+            "key": "context.used.size.min",
+            "value": 86
+          },
+          {
+            "key": "context.used.total",
+            "value": 1
+          },
+          {
+            "key": "contextSelection",
+            "value": 10
+          },
+          {
+            "key": "tier",
+            "value": 1
+          }
+        ],
+        "privateMetadata": {
+          "gitMetadata": [
+            {
+              "isPublic": true,
+              "remoteID": "UmVwb3NpdG9yeTo2MTMyNTMyOA==",
+              "repoName": "github.com/sourcegraph/cody"
+            }
+          ],
+          "traceId": "<string>"
+        },
+        "version": 0
+      },
+      "signature": "cody.chat-question/executed",
+      "source": {
+        "client": "VSCode.Cody",
+        "clientVersion": "<string>"
+      },
+      "timestamp": "<string>"
+    },
+    "proxyName": "sourcegraph.dotcom"
+  },
+  {
+    "event": {
+      "action": "noCode",
+      "feature": "cody.chatResponse",
+      "parameters": {
+        "billingMetadata": {
+          "category": "billable",
+          "product": "cody"
+        },
+        "interactionID": "<string>",
+        "metadata": [
+          {
+            "key": "charCount",
+            "value": 0
+          },
+          {
+            "key": "contextSelection",
+            "value": 10
+          },
+          {
+            "key": "lineCount",
+            "value": 0
+          },
+          {
+            "key": "recordsPrivateMetadataTranscript",
+            "value": 1
+          },
+          {
+            "key": "tier",
+            "value": 1
+          }
+        ],
+        "privateMetadata": {
+          "chatModel": "<string>",
+          "responseText": "Certainly! I'd be happy to discuss the `buzz.ts` file. This file contains a TypeScript implementation of the classic FizzBuzz problem. Here's a breakdown of what the code does:\n\n1. It exports a function called `fizzbuzz()`.\n2. Inside the function, an empty array called `fizzbuzz` is initialized.\n3. The function uses a for loop to iterate from 1 to 100.\n4. For each number, it applies the FizzBuzz rules:\n   - If the number is divisible by both 3 and 5 (i.e., divisible by 15), it adds 'FizzBuzz' to the array.\n   - If the number is only divisible by 3, it adds 'Fizz' to the array.\n   - If the number is only divisible by 5, it adds 'Buzz' to the array.\n   - For any other number, it adds the number itself (as a string) to the array.\n5. Finally, the function returns the completed `fizzbuzz` array.\n\nThis implementation is concise and follows the standard FizzBuzz rules. It's a good example of how to solve this common programming challenge in TypeScript. Would you like me to explain any specific part of the code in more detail or suggest any improvements?"
+        },
+        "version": 2
+      },
+      "signature": "cody.chatResponse/noCode",
+      "source": {
+        "client": "VSCode.Cody",
+        "clientVersion": "<string>"
+      },
+      "timestamp": "<string>"
+    },
+    "proxyName": "sourcegraph.dotcom"
+  }
+]

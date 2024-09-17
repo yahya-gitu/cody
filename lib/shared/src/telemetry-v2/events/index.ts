@@ -1,6 +1,7 @@
-import { events as atMentionEvents } from './atMention'
+import { events as atMentionEvents } from './at-mention'
+import { events as chatQuestionEvents } from './chat-question'
 
-export const events = objectFromPairs([...atMentionEvents])
+export const events = objectFromPairs([...atMentionEvents, ...chatQuestionEvents] as const)
 
 // Function to create an object from pairs with correct typing
 type FromPairs<T extends readonly (readonly [PropertyKey, any])[]> = {
