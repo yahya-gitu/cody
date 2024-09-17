@@ -5,9 +5,9 @@ import { fetch } from '../../fetch'
 import type { TelemetryEventInput } from '@sourcegraph/telemetry'
 
 import { escapeRegExp } from 'lodash'
-import { Observable, map } from 'observable-fns'
+import { Observable, Subject, map } from 'observable-fns'
 import semver from 'semver'
-import { authStatus } from '../../auth/authStatus'
+import { authStatus, currentAuthStatusOrNotReadyYet } from '../../auth/authStatus'
 import type { AuthStatus } from '../../auth/types'
 import { dependentAbortController, onAbort } from '../../common/abortController'
 import { type PickResolvedConfiguration, resolvedConfig } from '../../configuration/resolver'
@@ -206,7 +206,7 @@ interface CurrentUserInfoResponse {
 // This is fetched from the Sourcegraph instance and is specific to the current user.
 //
 // For the canonical type definition, see https://sourcegraph.com/github.com/sourcegraph/sourcegraph/-/blob/internal/clientconfig/types.go
-interface CodyClientConfig {
+export interface CodyClientConfig {
     // Whether the site admin allows this user to make use of the Cody chat feature.
     chatEnabled: boolean
 
@@ -1611,7 +1611,6 @@ export class ClientConfigSingleton {
     private static instance: ClientConfigSingleton
     private cachedClientConfig?: CodyClientConfig
     private cachedAt = 0
-    private isSignedIn = false
 
     // Default values for the legacy GraphQL features API, used when a Sourcegraph instance
     // does not support even the legacy GraphQL API.
@@ -1623,6 +1622,11 @@ export class ClientConfigSingleton {
     }
 
     private configSubscription: Unsubscribable
+
+    private changeNotifications = new Subject<CodyClientConfig>()
+    public readonly changes: Observable<CodyClientConfig> = this.changeNotifications.pipe(
+        distinctUntilChanged()
+    )
 
     // Constructor is private to prevent creating new instances outside of the class
     private constructor() {
@@ -1637,8 +1641,7 @@ export class ClientConfigSingleton {
                 ),
                 distinctUntilChanged(),
                 abortableOperation(async (authStatus, signal) => {
-                    this.isSignedIn = !!authStatus.authenticated
-                    if (this.isSignedIn) {
+                    if (authStatus.authenticated) {
                         this.refreshConfig(signal).catch(() => {})
                     } else {
                         this.cachedClientConfig = undefined
@@ -1685,7 +1688,7 @@ export class ClientConfigSingleton {
     // functionality but users can still make use of it' is double this (120s.)
     private shouldFetch(): 'sync' | 'async' | false {
         // If the user is not logged in, we will not fetch as it will fail
-        if (!this.isSignedIn) {
+        if (!currentAuthStatusOrNotReadyYet()?.authenticated) {
             return false
         }
 
@@ -1773,6 +1776,7 @@ export class ClientConfigSingleton {
                 logDebug('ClientConfigSingleton', 'refreshed', JSON.stringify(clientConfig))
                 this.cachedClientConfig = clientConfig
                 this.cachedAt = Date.now()
+                this.changeNotifications.next(clientConfig)
                 return clientConfig
             })
             .catch(e => {

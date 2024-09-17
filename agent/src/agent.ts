@@ -5,6 +5,7 @@ import type { Polly, Request } from '@pollyjs/core'
 import {
     type AccountKeyedChatHistory,
     type ChatHistoryKey,
+    ClientConfigSingleton,
     type CodyCommand,
     ModelUsage,
     currentAuthStatus,
@@ -1239,7 +1240,8 @@ export class Agent extends MessageHandler implements ExtensionClient {
         })
 
         this.registerAuthenticatedRequest('chat/models', async ({ modelUsage }) => {
-            await syncModels(currentAuthStatus())
+            const clientConfig = (await ClientConfigSingleton.getInstance().getConfig()) ?? null
+            await syncModels(currentAuthStatus(), clientConfig)
             const models = modelsService.getModels(modelUsage)
             return { models }
         })

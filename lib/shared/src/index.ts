@@ -241,6 +241,7 @@ export {
     type RepoSuggestionsSearchResponse,
     type InputContextItem,
     type ChatIntentResult,
+    type CodyClientConfig,
 } from './sourcegraph-api/graphql/client'
 export type {
     CodyLLMSiteConfiguration,

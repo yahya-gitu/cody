@@ -14,8 +14,10 @@ import {
     distinctUntilChanged,
     mergeMap,
     promiseFactoryToObservable,
+    startWith,
 } from '../misc/observable'
 import { isAbortError } from '../sourcegraph-api/errors'
+import { ClientConfigSingleton, type CodyClientConfig } from '../sourcegraph-api/graphql/client'
 import { CHAT_INPUT_TOKEN_BUDGET, CHAT_OUTPUT_TOKEN_BUDGET } from '../token/constants'
 import { ModelTag } from './tags'
 import { type ChatModel, type EditModel, type ModelContextWindow, ModelUsage } from './types'
@@ -362,7 +364,11 @@ export class ModelsService {
      * Needs to be set at static initialization time by the `vscode/` codebase.
      */
     public static syncModels:
-        | ((authStatus: AuthStatus, signal?: AbortSignal) => Promise<void>)
+        | ((
+              authStatus: AuthStatus,
+              clientConfig: CodyClientConfig | null,
+              signal?: AbortSignal
+          ) => Promise<void>)
         | undefined
 
     private configSubscription: Unsubscribable
@@ -371,10 +377,12 @@ export class ModelsService {
         this.configSubscription = combineLatest([
             resolvedConfig.map(config => config.configuration.agentIDE).pipe(distinctUntilChanged()),
             authStatus,
+            ClientConfigSingleton.getInstance().changes.pipe(startWith(null)),
         ])
             .pipe(
+                distinctUntilChanged(),
                 debounceTime(0), // wait for sync accessors to update
-                mergeMap(([agentIDE, authStatus]) =>
+                mergeMap(([agentIDE, authStatus, clientConfig]) =>
                     promiseFactoryToObservable(async signal => {
                         try {
                             if (!ModelsService.syncModels) {
@@ -382,7 +390,7 @@ export class ModelsService {
                                     'ModelsService.syncModels must be set at static initialization time'
                                 )
                             }
-                            await ModelsService.syncModels(authStatus, signal)
+                            await ModelsService.syncModels(authStatus, clientConfig, signal)
                         } catch (error) {
                             if (!isAbortError(error)) {
                                 logError('ModelsService', 'Failed to sync models', error)

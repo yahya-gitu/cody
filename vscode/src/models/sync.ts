@@ -3,6 +3,7 @@ import {
     type AuthStatus,
     CHAT_INPUT_TOKEN_BUDGET,
     ClientConfigSingleton,
+    type CodyClientConfig,
     FeatureFlag,
     Model,
     ModelUsage,
@@ -33,17 +34,16 @@ import { getEnterpriseContextWindow } from './utils'
  * The token limit for the provider will use the configured limit,
  * or fallback to the limit from the authentication status if not configured.
  */
-export async function syncModels(authStatus: AuthStatus, signal?: AbortSignal): Promise<void> {
+export async function syncModels(
+    authStatus: AuthStatus,
+    clientConfig: CodyClientConfig | null,
+    signal?: AbortSignal
+): Promise<void> {
     // If you are not authenticated, you cannot use Cody. Sorry.
     if (!authStatus.authenticated) {
         modelsService.setModels([])
         return
     }
-
-    // Fetch the LLM models and configuration server-side. See:
-    // https://linear.app/sourcegraph/project/server-side-cody-model-selection-cca47c48da6d
-    const clientConfig = await ClientConfigSingleton.getInstance().getConfig(signal)
-    signal?.throwIfAborted()
 
     if (clientConfig?.modelsAPIEnabled) {
         logDebug('ModelsService', 'new models API enabled')
@@ -123,7 +123,7 @@ ModelsService.syncModels = syncModels
 
 export async function joinModelWaitlist(authStatus: AuthStatus): Promise<void> {
     localStorage.set(localStorage.keys.waitlist_o1, true)
-    await syncModels(authStatus)
+    await syncModels(authStatus, (await ClientConfigSingleton.getInstance().getConfig()) ?? null)
     telemetryRecorder.recordEvent('cody.joinLlmWaitlist', 'clicked')
 }
 

@@ -2,7 +2,7 @@ import {
     AUTH_STATUS_FIXTURE_AUTHED,
     AUTH_STATUS_FIXTURE_UNAUTHED,
     type AuthenticatedAuthStatus,
-    ClientConfigSingleton,
+    type CodyClientConfig,
     DOTCOM_URL,
     Model,
     ModelTag,
@@ -26,6 +26,15 @@ vi.mock('graphqlClient')
 vi.mock('../services/LocalStorageProvider')
 
 describe('syncModels', () => {
+    const CLIENT_CONFIG_MODELS_API_DISABLED: CodyClientConfig = {
+        chatEnabled: true,
+        autoCompleteEnabled: true,
+        customCommandsEnabled: true,
+        attributionEnabled: true,
+        smartContextWindowEnabled: true,
+        modelsAPIEnabled: false,
+    }
+
     const setModelsSpy = vi.spyOn(modelsService, 'setModels')
 
     beforeEach(() => {
@@ -33,16 +42,6 @@ describe('syncModels', () => {
         mockAuthStatus(AUTH_STATUS_FIXTURE_AUTHED)
 
         vi.spyOn(featureFlagProvider, 'evaluateFeatureFlag').mockResolvedValue(false)
-
-        // Mock the /.api/client-config for these tests so that modelsAPIEnabled == false
-        vi.spyOn(ClientConfigSingleton.prototype, 'getConfig').mockResolvedValue({
-            chatEnabled: true,
-            autoCompleteEnabled: true,
-            customCommandsEnabled: true,
-            attributionEnabled: true,
-            smartContextWindowEnabled: true,
-            modelsAPIEnabled: false,
-        })
     })
     afterEach(() => {
         // SUPER IMPORTANT: We need to call restoreAllMocks (instead of resetAllMocks)
@@ -53,19 +52,25 @@ describe('syncModels', () => {
     })
 
     it('does not register models if not authenticated', async () => {
-        await syncModels(AUTH_STATUS_FIXTURE_UNAUTHED)
+        await syncModels(AUTH_STATUS_FIXTURE_UNAUTHED, CLIENT_CONFIG_MODELS_API_DISABLED)
         expect(setModelsSpy).toHaveBeenCalledWith([])
     })
 
     it('sets dotcom default models if on dotcom', async () => {
         mockResolvedConfig({ auth: { serverEndpoint: DOTCOM_URL.toString() } })
         localStorage.set('mock', '1')
-        await syncModels({ ...AUTH_STATUS_FIXTURE_AUTHED, endpoint: DOTCOM_URL.toString() })
+        await syncModels(
+            { ...AUTH_STATUS_FIXTURE_AUTHED, endpoint: DOTCOM_URL.toString() },
+            CLIENT_CONFIG_MODELS_API_DISABLED
+        )
         expect(setModelsSpy).toHaveBeenCalledWith(getDotComDefaultModels())
     })
 
     it('sets no models if the enterprise instance does not have Cody enabled', async () => {
-        await syncModels({ ...AUTH_STATUS_FIXTURE_AUTHED, endpoint: 'https://example.com' })
+        await syncModels(
+            { ...AUTH_STATUS_FIXTURE_AUTHED, endpoint: 'https://example.com' },
+            CLIENT_CONFIG_MODELS_API_DISABLED
+        )
         expect(setModelsSpy).toHaveBeenCalledWith([])
     })
 
@@ -78,7 +83,7 @@ describe('syncModels', () => {
             configOverwrites: { chatModel },
         }
 
-        await syncModels(authStatus)
+        await syncModels(authStatus, CLIENT_CONFIG_MODELS_API_DISABLED)
 
         // i.e. this gets the one and only chat model from the Sourcegraph instance.
         expect(setModelsSpy).not.toHaveBeenCalledWith(getDotComDefaultModels())
@@ -108,6 +113,16 @@ describe('syncModels from the server', () => {
         } as Partial<ServerModel> as ServerModel,
     ]
 
+    // Mock the /.api/client-config for these tests so that modelsAPIEnabled == true
+    const CLIENT_CONFIG_MODELS_API_ENABLED: CodyClientConfig = {
+        chatEnabled: true,
+        autoCompleteEnabled: true,
+        customCommandsEnabled: true,
+        attributionEnabled: true,
+        smartContextWindowEnabled: true,
+        modelsAPIEnabled: true,
+    }
+
     // Unlike the other mocks, we define setModelsSpy here so that it can
     // be referenced by individual tests. (But like the other spys, it needs
     // to be reset/restored after each test.)
@@ -115,17 +130,6 @@ describe('syncModels from the server', () => {
 
     beforeEach(() => {
         setModelsSpy = vi.spyOn(modelsService, 'setModels')
-
-        // Mock the /.api/client-config for these tests so that modelsAPIEnabled == true
-        const mockClientConfig = {
-            chatEnabled: true,
-            autoCompleteEnabled: true,
-            customCommandsEnabled: true,
-            attributionEnabled: true,
-            smartContextWindowEnabled: true,
-            modelsAPIEnabled: true,
-        }
-        vi.spyOn(ClientConfigSingleton.prototype, 'getConfig').mockResolvedValue(mockClientConfig)
 
         // Mock the secretStorage to return user creds IFF it is for `testEndpoint`.
         const getTokenSpy = vi.spyOn(secretStorage, 'getToken')
@@ -161,22 +165,28 @@ describe('syncModels from the server', () => {
     // skip this tests since these checks have been removed to make Cody Web working
     it.skip('throws if no creds are available', async () => {
         await expect(async () => {
-            await syncModels({
-                ...AUTH_STATUS_FIXTURE_AUTHED,
-                authenticated: true,
-                // Our mock for secretStorage will only return a user access token if
-                // the endpoint matches what is expected.
-                endpoint: 'something other than testEndpoint',
-            })
+            await syncModels(
+                {
+                    ...AUTH_STATUS_FIXTURE_AUTHED,
+                    authenticated: true,
+                    // Our mock for secretStorage will only return a user access token if
+                    // the endpoint matches what is expected.
+                    endpoint: 'something other than testEndpoint',
+                },
+                CLIENT_CONFIG_MODELS_API_ENABLED
+            )
         }).rejects.toThrowError('no userAccessToken available. Unable to fetch models.')
     })
 
     it('works', async () => {
-        await syncModels({
-            ...AUTH_STATUS_FIXTURE_AUTHED,
-            authenticated: true,
-            endpoint: testEndpoint,
-        })
+        await syncModels(
+            {
+                ...AUTH_STATUS_FIXTURE_AUTHED,
+                authenticated: true,
+                endpoint: testEndpoint,
+            },
+            CLIENT_CONFIG_MODELS_API_ENABLED
+        )
         expect(setModelsSpy).toHaveBeenCalledWith(testServerSideModels.map(Model.fromApi))
     })
 })
