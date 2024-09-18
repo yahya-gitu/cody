@@ -5,6 +5,8 @@ import { logDebug, logError } from '../log'
 
 const CODY_ACCESS_TOKEN_SECRET = 'cody.access-token'
 
+const CODY_ACCESS_TOKEN_SOURCE = 'cody.access-token.source'
+
 export async function getAccessToken(): Promise<string | null> {
     try {
         const token = (await secretStorage.get(CODY_ACCESS_TOKEN_SECRET)) || null
@@ -30,6 +32,7 @@ interface SecretStorage extends vscode.SecretStorage, ClientSecrets {
     // the Sourcegraph instance endpoint it is associated with.
     storeToken(endpoint: string, value: string): Promise<void>
     getToken(endpoint: string): Promise<string | undefined>
+    getTokenSource(endpoint: string): Promise<string | undefined>
     deleteToken(endpoint: string): Promise<void>
 }
 
@@ -100,9 +103,20 @@ export class VSCodeSecretStorage implements SecretStorage {
         return this.get(endpoint)
     }
 
+    public async getTokenSource(endpoint: string): Promise<string | undefined> {
+        return this.get(endpoint + CODY_ACCESS_TOKEN_SOURCE)
+    }
+
     public async storeToken(endpoint: string, value: string): Promise<void> {
+        // remove prefix and store a second entry with this.store
         if (!value || !endpoint) {
             return
+        }
+        if (value.startsWith('MANUAL_')) {
+            value = value.slice(7)
+            await this.store(endpoint + CODY_ACCESS_TOKEN_SOURCE, 'MANUAL')
+        } else {
+            await this.store(endpoint + CODY_ACCESS_TOKEN_SOURCE, 'AUTO')
         }
         await this.store(endpoint, value)
         await this.store(CODY_ACCESS_TOKEN_SECRET, value)
@@ -173,6 +187,10 @@ class InMemorySecretStorage implements SecretStorage {
 
     public async getToken(endpoint: string): Promise<string | undefined> {
         return this.get(endpoint)
+    }
+
+    public async getTokenSource(endpoint: string): Promise<string | undefined> {
+        return this.get(endpoint + CODY_ACCESS_TOKEN_SOURCE)
     }
 
     public async storeToken(endpoint: string, value: string): Promise<void> {
