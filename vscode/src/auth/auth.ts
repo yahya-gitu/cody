@@ -226,7 +226,7 @@ async function signinMenuForInstanceUrl(instanceUrl: string): Promise<void> {
     const authState = await authProvider.auth({
         endpoint: instanceUrl,
         token: accessToken,
-        tokenSource: 'MANUAL',
+        tokenSource: 'redirect',
     })
     telemetryRecorder.recordEvent('cody.auth.signin.token', 'clicked', {
         metadata: {

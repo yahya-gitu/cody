@@ -15,13 +15,13 @@ import {
     telemetryRecorder,
 } from '@sourcegraph/cody-shared'
 import { Subject } from 'observable-fns'
-import { formatURL } from '../auth/auth'
+import { formatURL   } from '../auth/auth'
 import { newAuthStatus } from '../chat/utils'
 import { getConfiguration } from '../configuration'
 import { logDebug } from '../log'
 import { maybeStartInteractiveTutorial } from '../tutorial/helpers'
 import { localStorage } from './LocalStorageProvider'
-import { secretStorage } from './SecretStorageProvider'
+import { secretStorage, TokenSource  } from './SecretStorageProvider'
 
 const HAS_AUTHENTICATED_BEFORE_KEY = 'has-authenticated-before'
 
@@ -40,7 +40,7 @@ class AuthProvider implements vscode.Disposable {
         const { auth } = await currentResolvedConfig()
         const lastEndpoint = localStorage?.getEndpoint() || auth.serverEndpoint
         const token = (await secretStorage.get(lastEndpoint || '')) || auth.accessToken
-        const tokenSource = (await secretStorage.get((lastEndpoint + ":tokenSource") || '')) || auth.tokenSource
+        const tokenSource = (await secretStorage.getTokenSource(lastEndpoint  || '')) || auth.tokenSource
         logDebug(
             'AuthProvider:init:lastEndpoint',
             token?.trim() ? 'Token recovered from secretStorage' : 'No token found in secretStorage',
@@ -168,7 +168,7 @@ class AuthProvider implements vscode.Disposable {
         }: {
             endpoint: string
             token: string | null
-            tokenSource: string | null
+            tokenSource: TokenSource | null
             customHeaders?: Record<string, string> | null
             isExtensionStartup?: boolean
             isOfflineMode?: boolean

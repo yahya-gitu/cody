@@ -6,6 +6,8 @@ import { logDebug, logError } from '../log'
 const CODY_ACCESS_TOKEN_SECRET = 'cody.access-token'
 
 export const CODY_ACCESS_TOKEN_SOURCE = 'cody.access-token.source'
+export type TokenSource = 'redirect' | 'nonredirect';
+
 
 export async function getAccessToken(): Promise<string | null> {
     try {
@@ -30,7 +32,7 @@ interface SecretStorage extends vscode.SecretStorage, ClientSecrets {
 
     // Shorthand for persisting the user's Cody Access token based on
     // the Sourcegraph instance endpoint it is associated with.
-    storeToken(endpoint: string, accessToken: string, tokenSource: string): Promise<void>
+    storeToken(endpoint: string, accessToken: string, tokenSource: TokenSource): Promise<void>
     getToken(endpoint: string): Promise<string | undefined>
     getTokenSource(endpoint: string): Promise<string | undefined>
     deleteToken(endpoint: string): Promise<void>
@@ -107,7 +109,7 @@ export class VSCodeSecretStorage implements SecretStorage {
         return this.get(endpoint + CODY_ACCESS_TOKEN_SOURCE)
     }
 
-    public async storeToken(endpoint: string, accessToken: string, tokenSource: string): Promise<void> {
+    public async storeToken(endpoint: string, accessToken: string, tokenSource: TokenSource): Promise<void> {
         // remove prefix and store a second entry with this.store
         if (!accessToken || !endpoint || !tokenSource) {
             return
@@ -189,7 +191,7 @@ class InMemorySecretStorage implements SecretStorage {
         return this.get(endpoint + CODY_ACCESS_TOKEN_SOURCE)
     }
 
-    public async storeToken(endpoint: string, accessToken: string, tokenSource: string): Promise<void> {
+    public async storeToken(endpoint: string, accessToken: string, tokenSource: TokenSource): Promise<void> {
         await this.store(endpoint, accessToken)
         await this.store(CODY_ACCESS_TOKEN_SECRET, accessToken)
         await this.store(endpoint + CODY_ACCESS_TOKEN_SOURCE, tokenSource)
