@@ -1,9 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { getArtificialDelay, lowPerformanceLanguageIds, resetArtificialDelay } from './artificial-delay'
-const featureFlags = {
-    user: true,
-}
 
 describe('getArtificialDelay', () => {
     beforeEach(() => {
@@ -21,7 +18,6 @@ describe('getArtificialDelay', () => {
         const languageId = 'css'
         expect(lowPerformanceLanguageIds.has(languageId)).toBe(true)
         const params = {
-            featureFlags,
             uri,
             languageId,
             codyAutocompleteDisableLowPerfLangDelay: true,
@@ -39,7 +35,6 @@ describe('getArtificialDelay', () => {
         expect(lowPerformanceLanguageIds.has(languageId)).toBe(true)
         const codyAutocompleteDisableLowPerfLangDelay = false
         const params = {
-            featureFlags,
             uri,
             languageId,
             codyAutocompleteDisableLowPerfLangDelay,
@@ -98,7 +93,6 @@ describe('getArtificialDelay', () => {
         const codyAutocompleteDisableLowPerfLangDelay = false
         expect(lowPerformanceLanguageIds.has(languageId)).toBe(codyAutocompleteDisableLowPerfLangDelay)
         const params = {
-            featureFlags,
             uri,
             languageId,
             codyAutocompleteDisableLowPerfLangDelay,
@@ -144,7 +138,6 @@ describe('getArtificialDelay', () => {
         expect(lowPerformanceLanguageIds.has(languageId)).toBe(true)
         const codyAutocompleteDisableLowPerfLangDelay = false
         const params = {
-            featureFlags,
             uri,
             languageId,
             codyAutocompleteDisableLowPerfLangDelay,
@@ -174,7 +167,6 @@ describe('getArtificialDelay', () => {
         const codyAutocompleteDisableLowPerfLangDelay = false
         expect(lowPerformanceLanguageIds.has(languageId)).toBe(codyAutocompleteDisableLowPerfLangDelay)
         const params = {
-            featureFlags,
             uri,
             languageId,
             codyAutocompleteDisableLowPerfLangDelay,
@@ -217,10 +209,6 @@ describe('getArtificialDelay', () => {
         const uri = 'file://foo/bar/test.css'
         const codyAutocompleteDisableLowPerfLangDelay = false
 
-        const featureFlagsLangOnly = {
-            user: false,
-        }
-
         // css is a low performance language
         const lowPerformLanguageId = 'css'
         expect(lowPerformanceLanguageIds.has(lowPerformLanguageId)).toBe(true)
@@ -231,7 +219,6 @@ describe('getArtificialDelay', () => {
         expect(lowPerformanceLanguageIds.has(languageId)).toBe(codyAutocompleteDisableLowPerfLangDelay)
 
         const params = {
-            featureFlags: featureFlagsLangOnly,
             uri,
             languageId,
             codyAutocompleteDisableLowPerfLangDelay,
@@ -255,12 +242,7 @@ describe('getArtificialDelay', () => {
         const codyAutocompleteDisableLowPerfLangDelay = false
         expect(lowPerformanceLanguageIds.has(languageId)).toBe(true)
 
-        const featureFlagsNoUser = {
-            user: false,
-        }
-
         const params = {
-            featureFlags: featureFlagsNoUser,
             uri,
             languageId,
             codyAutocompleteDisableLowPerfLangDelay,
@@ -283,7 +265,6 @@ describe('getArtificialDelay', () => {
         expect(lowPerformanceLanguageIds.has(goLanguageId)).toBe(codyAutocompleteDisableLowPerfLangDelay)
         // reset to provider latency because language latency is ignored for non-low-performance languages
         const goParams = {
-            featureFlags: featureFlagsNoUser,
             uri: goUri,
             languageId: goLanguageId,
             codyAutocompleteDisableLowPerfLangDelay,

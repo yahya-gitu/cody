@@ -46,17 +46,14 @@ let userMetrics = {
  * - The user's current latency, which increases linearly up to a maximum after 5 rejected suggestions
  * - The session timestamp, which is reset every 5 minutes or on file change
  *
- * The function returns the total delay to be added, which is capped at a maximum value.
  */
 export function getArtificialDelay(params: {
-    featureFlags: LatencyFeatureFlags
     uri: string
     languageId: string
     codyAutocompleteDisableLowPerfLangDelay: boolean
     completionIntent?: CompletionIntent
 }): number {
-    const { featureFlags, uri, languageId, codyAutocompleteDisableLowPerfLangDelay, completionIntent } =
-        params
+    const { uri, languageId, codyAutocompleteDisableLowPerfLangDelay, completionIntent } = params
 
     let baseline = 0
 
@@ -89,11 +86,6 @@ export function getArtificialDelay(params: {
         baseline,
         Math.min(baseline + userMetrics.currentLatency, defaultLatencies.max)
     )
-
-    // Increase latency linearly up to max after 5 rejected suggestions
-    if (userMetrics.suggested >= 5 && userMetrics.currentLatency < defaultLatencies.max) {
-        userMetrics.currentLatency += featureFlags.user ? defaultLatencies.user : 0
-    }
 
     if (total > 0) {
         logDebug('AutocompleteProvider:getLatency', `Delay added: ${total}`)
