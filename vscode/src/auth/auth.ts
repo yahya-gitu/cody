@@ -178,7 +178,7 @@ async function showAccessTokenInputBox(endpoint: string): Promise<string | undef
     })
 
     if (typeof result === 'string') {
-        return result.trim()
+        return 'MANUAL_' + result.trim()
     }
     return result
 }
