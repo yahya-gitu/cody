@@ -10,13 +10,13 @@ import {
     type ServerModel,
     type ServerModelConfiguration,
     createModel,
+    createModelFromServerModel,
     featureFlagProvider,
     getDotComDefaultModels,
     mockAuthStatus,
     mockResolvedConfig,
     modelsService,
 } from '@sourcegraph/cody-shared'
-import { createModelFromServerModel } from '@sourcegraph/cody-shared/src/models/model'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { localStorage } from '../services/LocalStorageProvider'
 import { secretStorage } from '../services/SecretStorageProvider'
