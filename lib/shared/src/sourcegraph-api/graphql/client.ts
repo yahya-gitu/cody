@@ -15,8 +15,10 @@ import { logDebug, logError } from '../../logger'
 import {
     type Unsubscribable,
     abortableOperation,
+    concat,
     distinctUntilChanged,
     firstValueFrom,
+    promiseFactoryToObservable,
 } from '../../misc/observable'
 import { addTraceparent, wrapInActiveSpan } from '../../tracing'
 import { isError } from '../../utils'
@@ -1624,9 +1626,14 @@ export class ClientConfigSingleton {
     private configSubscription: Unsubscribable
 
     private changeNotifications = new Subject<CodyClientConfig>()
-    public readonly changes: Observable<CodyClientConfig> = this.changeNotifications.pipe(
-        distinctUntilChanged()
-    )
+
+    /**
+     * An observable that immediately emits the last-cached value and then emits all updated values.
+     */
+    public readonly changes: Observable<CodyClientConfig> = concat(
+        promiseFactoryToObservable(signal => this.getConfig(signal)),
+        this.changeNotifications
+    ).pipe(distinctUntilChanged())
 
     // Constructor is private to prevent creating new instances outside of the class
     private constructor() {

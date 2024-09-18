@@ -1,15 +1,20 @@
-import { expect, it } from 'vitest'
+import { expect, it, vi } from 'vitest'
 
 import {
     AUTH_STATUS_FIXTURE_AUTHED,
     AUTH_STATUS_FIXTURE_AUTHED_DOTCOM,
     type AutocompleteProviderID,
     type CodeCompletionsParams,
+    type ModelsData,
+    type ModelsService,
+    TestLocalStorageForModelPreferences,
+    createModelFromServerModel,
     firstValueFrom,
-    mockModelsService,
+    mockAuthStatus,
     modelsService,
 } from '@sourcegraph/cody-shared'
 
+import { Observable } from 'observable-fns'
 import { getMockedGenerateCompletionsOptions } from '../../get-inline-completions-tests/helpers'
 import { type ServerSentModelsMock, getServerSentModelsMock } from './__mocks__/create-provider-mocks'
 import { createProvider } from './create-provider'
@@ -67,11 +72,17 @@ export async function getAutocompleteProviderFromServerSideModelConfig({
     const newDefaultModel = mockedConfig.models.find(model => model.modelRef === modelRef)!
     mockedConfig.defaultModels.codeCompletion = newDefaultModel.modelRef
 
-    await mockModelsService({
-        modelsService,
-        config: mockedConfig,
-        authStatus,
+    mockModelsServiceWithModelsData({
+        primaryModels: mockedConfig.models.map(createModelFromServerModel),
+        localModels: [],
+        preferences: {
+            defaults: {
+                autocomplete: newDefaultModel.modelName,
+            },
+            selected: {},
+        },
     })
+    mockAuthStatus(authStatus)
 
     return createProviderForTest({
         config: {
@@ -82,6 +93,14 @@ export async function getAutocompleteProviderFromServerSideModelConfig({
         },
         authStatus,
     })
+}
+
+function mockModelsServiceWithModelsData(modelsData: ModelsData): ModelsService {
+    modelsService.storage = new TestLocalStorageForModelPreferences()
+    vi.spyOn(modelsService, 'modelsChanges', 'get').mockReturnValue(Observable.of(modelsData))
+    vi.spyOn(modelsService, 'models', 'get').mockReturnValue(modelsData.primaryModels)
+    vi.spyOn(modelsService, 'preferences', 'get').mockReturnValue(modelsData.preferences)
+    return modelsService
 }
 
 /**

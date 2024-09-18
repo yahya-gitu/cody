@@ -397,7 +397,7 @@ export function initCompletionProviderConfig({
     mockResolvedConfig({
         configuration: { ...configuration?.configuration },
         auth: { serverEndpoint: 'https://example.com', ...configuration?.auth },
-        clientState: { ...configuration?.clientState },
+        clientState: { modelPreferences: {}, ...configuration?.clientState },
     })
 }
 

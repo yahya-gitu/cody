@@ -5,11 +5,12 @@ import type { Polly, Request } from '@pollyjs/core'
 import {
     type AccountKeyedChatHistory,
     type ChatHistoryKey,
-    ClientConfigSingleton,
     type CodyCommand,
     ModelUsage,
     currentAuthStatus,
     currentAuthStatusAuthed,
+    firstValueFrom,
+    mergeMap,
     telemetryRecorder,
     waitUntilComplete,
 } from '@sourcegraph/cody-shared'
@@ -62,7 +63,6 @@ import { getModelOptionItems } from '../../vscode/src/edit/input/get-items/model
 import { getEditSmartSelection } from '../../vscode/src/edit/utils/edit-selection'
 import type { ExtensionClient } from '../../vscode/src/extension-client'
 import { IndentationBasedFoldingRangeProvider } from '../../vscode/src/lsp/foldingRanges'
-import { syncModels } from '../../vscode/src/models/sync'
 import type { FixupActor, FixupFileCollection } from '../../vscode/src/non-stop/roles'
 import type { FixupControlApplicator } from '../../vscode/src/non-stop/strategies'
 import { authProvider } from '../../vscode/src/services/AuthProvider'
@@ -1114,9 +1114,12 @@ export class Agent extends MessageHandler implements ExtensionClient {
             return Promise.reject(`No task with id ${id}`)
         })
 
-        this.registerAuthenticatedRequest('editTask/retry', params => {
+        this.registerAuthenticatedRequest('editTask/retry', async params => {
             const instruction = PromptString.unsafe_fromUserQuery(params.instruction)
-            const models = getModelOptionItems(modelsService.getModels(ModelUsage.Edit), true)
+            const models = getModelOptionItems(
+                await firstValueFrom(modelsService.getModels(ModelUsage.Edit)),
+                true
+            )
             const previousInput: QuickPickInput = {
                 instruction: instruction,
                 userContextFiles: [],
@@ -1227,7 +1230,7 @@ export class Agent extends MessageHandler implements ExtensionClient {
         // TODO: JetBrains no longer uses this, consider deleting it.
         this.registerAuthenticatedRequest('chat/restore', async ({ modelID, messages, chatID }) => {
             const authStatus = currentAuthStatusAuthed()
-            modelID ??= modelsService.getDefaultChatModel() ?? ''
+            modelID ??= (await firstValueFrom(modelsService.getDefaultChatModel())) ?? ''
             const chatMessages = messages?.map(PromptString.unsafe_deserializeChatMessage) ?? []
             const chatModel = new ChatModel(modelID, chatID, chatMessages)
             await chatHistory.saveChat(authStatus, chatModel.toSerializedChatTranscript())
@@ -1240,9 +1243,16 @@ export class Agent extends MessageHandler implements ExtensionClient {
         })
 
         this.registerAuthenticatedRequest('chat/models', async ({ modelUsage }) => {
-            const clientConfig = (await ClientConfigSingleton.getInstance().getConfig()) ?? null
-            await syncModels(currentAuthStatus(), clientConfig)
-            const models = modelsService.getModels(modelUsage)
+            // TODO!(sqs)
+            // const clientConfig = (await ClientConfigSingleton.getInstance().getConfig()) ?? null
+            // await syncModels(currentAuthStatus(), clientConfig)
+            // const models = modelsService.getModels(modelUsage)
+            // TODO!(sqs): TODO: make this use a top-level method, or just call syncModels here
+            const models = await firstValueFrom(
+                modelsService
+                    .modelsChangesWaitForPending()
+                    .pipe(mergeMap(() => modelsService.getModels(modelUsage)))
+            )
             return { models }
         })
 

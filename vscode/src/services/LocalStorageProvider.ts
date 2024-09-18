@@ -9,6 +9,7 @@ import {
     type AuthenticatedAuthStatus,
     type ChatHistoryKey,
     type ClientState,
+    type PerSitePreferences,
     type ResolvedConfiguration,
     type UserLocalHistory,
     distinctUntilChanged,
@@ -33,6 +34,7 @@ class LocalStorage {
     public readonly ANONYMOUS_USER_ID_KEY = 'sourcegraphAnonymousUid'
     public readonly LAST_USED_ENDPOINT = 'SOURCEGRAPH_CODY_ENDPOINT'
     public readonly LAST_USED_USERNAME = 'SOURCEGRAPH_CODY_USERNAME'
+    private readonly MODEL_PREFERENCES_KEY = 'cody-model-preferences'
     public readonly keys = {
         // LLM waitlist for the 09/12/2024 openAI o1 models
         waitlist_o1: 'CODY_WAITLIST_LLM_09122024',
@@ -68,6 +70,8 @@ class LocalStorage {
             lastUsedEndpoint: this.getEndpoint(),
             anonymousUserID: this.anonymousUserID(),
             lastUsedChatModality: this.getLastUsedChatModality(),
+            modelPreferences: this.getModelPreferences(),
+            waitlist_o1: this.get(this.keys.waitlist_o1),
         }
     }
 
@@ -78,6 +82,14 @@ class LocalStorage {
             map(() => this.getClientState()),
             distinctUntilChanged()
         )
+    }
+
+    public async setOrDeleteWaitlistO1(value: boolean): Promise<void> {
+        if (value) {
+            await this.set(this.keys.waitlist_o1, value)
+        } else {
+            await this.delete(this.keys.waitlist_o1)
+        }
     }
 
     public getEndpoint(): string | null {
@@ -271,6 +283,14 @@ class LocalStorage {
 
     public getLastUsedChatModality(): 'sidebar' | 'editor' {
         return this.get(this.LAST_USED_CHAT_MODALITY) ?? 'sidebar'
+    }
+
+    public getModelPreferences(): PerSitePreferences {
+        return this.get<PerSitePreferences>(this.MODEL_PREFERENCES_KEY) ?? {}
+    }
+
+    public async setModelPreferences(preferences: PerSitePreferences): Promise<void> {
+        await this.set(this.MODEL_PREFERENCES_KEY, preferences)
     }
 
     public get<T>(key: string): T | null {

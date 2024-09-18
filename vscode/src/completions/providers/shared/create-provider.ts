@@ -1,4 +1,4 @@
-import { Observable, map } from 'observable-fns'
+import { Observable } from 'observable-fns'
 
 import {
     AUTOCOMPLETE_PROVIDER_ID,
@@ -8,6 +8,7 @@ import {
     ModelUsage,
     type PickResolvedConfiguration,
     isDotComAuthed,
+    mergeMap,
     modelsService,
 } from '@sourcegraph/cody-shared'
 
@@ -48,57 +49,59 @@ export function createProvider({
     }
 
     return getDotComExperimentModel({ authStatus }).pipe(
-        map(dotComExperiment => {
+        mergeMap(dotComExperiment => {
             // Check if a user participates in autocomplete experiments.
             if (dotComExperiment) {
-                return createProviderHelper({
-                    legacyModel: dotComExperiment.model,
-                    provider: dotComExperiment.provider,
-                    source: 'dotcom-feature-flags',
-                    authStatus,
-                })
+                return Observable.of(
+                    createProviderHelper({
+                        legacyModel: dotComExperiment.model,
+                        provider: dotComExperiment.provider,
+                        source: 'dotcom-feature-flags',
+                        authStatus,
+                    })
+                )
             }
 
-            // Check if server-side model configuration is available.
-            const model = modelsService.getDefaultModel(ModelUsage.Autocomplete)
+            return modelsService.getDefaultModel(ModelUsage.Autocomplete).map(model => {
+                // Check if server-side model configuration is available.
+                if (model) {
+                    const provider = model.clientSideConfig?.openAICompatible
+                        ? 'openaicompatible'
+                        : model.provider
 
-            if (model) {
-                const provider = model.clientSideConfig?.openAICompatible
-                    ? 'openaicompatible'
-                    : model.provider
-
-                return createProviderHelper({
-                    legacyModel: model.id,
-                    model,
-                    provider,
-                    source: 'server-side-model-config',
-                    authStatus,
-                })
-            }
-
-            // Fallback to site-config Cody LLM configuration.
-            const { configOverwrites } = authStatus
-
-            if (configOverwrites?.provider) {
-                const parsedProviderAndModel = parseProviderAndModel({
-                    provider: configOverwrites.provider,
-                    legacyModel: configOverwrites.completionModel,
-                })
-
-                if (parsedProviderAndModel instanceof Error) {
-                    return parsedProviderAndModel
+                    return createProviderHelper({
+                        legacyModel: model.id,
+                        model,
+                        provider,
+                        source: 'server-side-model-config',
+                        authStatus,
+                    })
                 }
 
-                return createProviderHelper({
-                    ...parsedProviderAndModel,
-                    source: 'site-config-cody-llm-configuration',
-                    authStatus,
-                })
-            }
+                // Fallback to site-config Cody LLM configuration.
+                const { configOverwrites } = authStatus
 
-            return new Error(
-                'Failed to create autocomplete provider. Please configure the `completionModel` using site configuration.'
-            )
+                if (configOverwrites?.provider) {
+                    const parsedProviderAndModel = parseProviderAndModel({
+                        provider: configOverwrites.provider,
+                        legacyModel: configOverwrites.completionModel,
+                    })
+
+                    if (parsedProviderAndModel instanceof Error) {
+                        return parsedProviderAndModel
+                    }
+
+                    return createProviderHelper({
+                        ...parsedProviderAndModel,
+                        source: 'site-config-cody-llm-configuration',
+                        authStatus,
+                    })
+                }
+
+                return new Error(
+                    'Failed to create autocomplete provider. Please configure the `completionModel` using site configuration.'
+                )
+            })
         })
     )
 }

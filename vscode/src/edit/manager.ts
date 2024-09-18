@@ -5,6 +5,7 @@ import {
     ClientConfigSingleton,
     PromptString,
     currentAuthStatusAuthed,
+    firstValueFrom,
     modelsService,
     ps,
     telemetryRecorder,
@@ -123,7 +124,7 @@ export class EditManager implements vscode.Disposable {
         // Set default edit configuration, if not provided
         // It is possible that these values may be overriden later, e.g. if the user changes them in the edit input.
         const range = getEditLineSelection(document, proposedRange)
-        const model = configuration.model || modelsService.getDefaultEditModel()
+        const model = configuration.model || (await firstValueFrom(modelsService.getDefaultEditModel()))
         if (!model) {
             throw new Error('No default edit model found. Please set one.')
         }
@@ -244,7 +245,7 @@ export class EditManager implements vscode.Disposable {
             return
         }
 
-        const model = configuration.model || modelsService.getDefaultEditModel()
+        const model = configuration.model || (await firstValueFrom(modelsService.getDefaultEditModel()))
         if (!model) {
             throw new Error('No default edit model found. Please set one.')
         }

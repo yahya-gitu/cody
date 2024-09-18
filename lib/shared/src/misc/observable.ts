@@ -1031,3 +1031,22 @@ export function withLatestFrom<T, R>(
             }
         })
 }
+
+export function defer<T>(observableFactory: () => ObservableLike<T>): Observable<T> {
+    return new Observable<T>(observer => {
+        let subscription: UnsubscribableLike | undefined
+
+        try {
+            const source = observableFactory()
+            subscription = source.subscribe(observer)
+        } catch (err) {
+            observer.error(err)
+        }
+
+        return () => {
+            if (subscription) {
+                unsubscribe(subscription)
+            }
+        }
+    })
+}
