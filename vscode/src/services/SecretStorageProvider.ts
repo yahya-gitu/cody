@@ -5,7 +5,7 @@ import { logDebug, logError } from '../log'
 
 const CODY_ACCESS_TOKEN_SECRET = 'cody.access-token'
 
-const CODY_ACCESS_TOKEN_SOURCE = 'cody.access-token.source'
+export const CODY_ACCESS_TOKEN_SOURCE = 'cody.access-token.source'
 
 export async function getAccessToken(): Promise<string | null> {
     try {
@@ -30,7 +30,7 @@ interface SecretStorage extends vscode.SecretStorage, ClientSecrets {
 
     // Shorthand for persisting the user's Cody Access token based on
     // the Sourcegraph instance endpoint it is associated with.
-    storeToken(endpoint: string, value: string): Promise<void>
+    storeToken(endpoint: string, accessToken: string, tokenSource: string): Promise<void>
     getToken(endpoint: string): Promise<string | undefined>
     getTokenSource(endpoint: string): Promise<string | undefined>
     deleteToken(endpoint: string): Promise<void>
@@ -107,19 +107,14 @@ export class VSCodeSecretStorage implements SecretStorage {
         return this.get(endpoint + CODY_ACCESS_TOKEN_SOURCE)
     }
 
-    public async storeToken(endpoint: string, value: string): Promise<void> {
+    public async storeToken(endpoint: string, accessToken: string, tokenSource: string): Promise<void> {
         // remove prefix and store a second entry with this.store
-        if (!value || !endpoint) {
+        if (!accessToken || !endpoint || !tokenSource) {
             return
         }
-        if (value.startsWith('MANUAL_')) {
-            value = value.slice(7)
-            await this.store(endpoint + CODY_ACCESS_TOKEN_SOURCE, 'MANUAL')
-        } else {
-            await this.store(endpoint + CODY_ACCESS_TOKEN_SOURCE, 'AUTO')
-        }
-        await this.store(endpoint, value)
-        await this.store(CODY_ACCESS_TOKEN_SECRET, value)
+        await this.store(endpoint, accessToken)
+        await this.store(endpoint+CODY_ACCESS_TOKEN_SOURCE, tokenSource)
+        await this.store(CODY_ACCESS_TOKEN_SECRET, accessToken)
     }
 
     public async deleteToken(endpoint: string): Promise<void> {
@@ -160,7 +155,8 @@ class InMemorySecretStorage implements SecretStorage {
         if (initialToken) {
             const parsedToken = JSON.parse(initialToken)
             if (Array.isArray(parsedToken) && parsedToken.length === 2) {
-                this.storeToken(parsedToken[0], parsedToken[1])
+                const tokenSource = "TEST"
+                this.storeToken(parsedToken[0], parsedToken[1], tokenSource)
             } else {
                 throw new Error('Initial token must be an array with [endpoint, value]')
             }
@@ -193,9 +189,10 @@ class InMemorySecretStorage implements SecretStorage {
         return this.get(endpoint + CODY_ACCESS_TOKEN_SOURCE)
     }
 
-    public async storeToken(endpoint: string, value: string): Promise<void> {
-        await this.store(endpoint, value)
-        await this.store(CODY_ACCESS_TOKEN_SECRET, value)
+    public async storeToken(endpoint: string, accessToken: string, tokenSource: string): Promise<void> {
+        await this.store(endpoint, accessToken)
+        await this.store(CODY_ACCESS_TOKEN_SECRET, accessToken)
+        await this.store(endpoint + CODY_ACCESS_TOKEN_SOURCE, tokenSource)
     }
 
     public async deleteToken(endpoint: string): Promise<void> {

@@ -11,6 +11,7 @@ import type { ReadonlyDeep } from './utils'
 export interface AuthCredentials {
     serverEndpoint: string
     accessToken: string | null
+    tokenSource: string | null
 }
 
 export type ConfigurationUseContext = 'embeddings' | 'keyword' | 'none' | 'blended' | 'unified'

@@ -66,9 +66,11 @@ export async function showSignInMenu(
             // Auto log user if token for the selected instance was found in secret
             const selectedEndpoint = item.uri
             const token = await secretStorage.get(selectedEndpoint)
+            const tokenSource = await secretStorage.getTokenSource(selectedEndpoint)
             let authStatus = await authProvider.auth({
                 endpoint: selectedEndpoint,
                 token: token || null,
+                tokenSource: tokenSource || null,
             })
             if (!authStatus?.authenticated) {
                 const newToken = await showAccessTokenInputBox(item.uri)
@@ -78,6 +80,7 @@ export async function showSignInMenu(
                 authStatus = await authProvider.auth({
                     endpoint: selectedEndpoint,
                     token: newToken || null,
+                    tokenSource: tokenSource || null,
                 })
             }
             await showAuthResultMessage(selectedEndpoint, authStatus)
@@ -223,6 +226,7 @@ async function signinMenuForInstanceUrl(instanceUrl: string): Promise<void> {
     const authState = await authProvider.auth({
         endpoint: instanceUrl,
         token: accessToken,
+        tokenSource: 'MANUAL',
     })
     telemetryRecorder.recordEvent('cody.auth.signin.token', 'clicked', {
         metadata: {
@@ -293,11 +297,12 @@ export async function tokenCallbackHandler(
 
     const params = new URLSearchParams(uri.query)
     const token = params.get('code') || params.get('token')
+    const tokenSource = "manual"
     const endpoint = currentAuthStatus().endpoint
     if (!token || !endpoint) {
         return
     }
-    const authState = await authProvider.auth({ endpoint, token, customHeaders })
+    const authState = await authProvider.auth({ endpoint, token, tokenSource, customHeaders })
     telemetryRecorder.recordEvent('cody.auth.fromCallback.web', 'succeeded', {
         metadata: {
             success: authState?.authenticated ? 1 : 0,
@@ -365,6 +370,6 @@ async function signOut(endpoint: string): Promise<void> {
     }
     await secretStorage.deleteToken(endpoint)
     await localStorage.deleteEndpoint()
-    await authProvider.auth({ endpoint, token: null })
+    await authProvider.auth({ endpoint, token: null, tokenSource: null })
     await vscode.commands.executeCommand('setContext', 'cody.activated', false)
 }

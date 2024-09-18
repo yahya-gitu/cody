@@ -40,6 +40,7 @@ class AuthProvider implements vscode.Disposable {
         const { auth } = await currentResolvedConfig()
         const lastEndpoint = localStorage?.getEndpoint() || auth.serverEndpoint
         const token = (await secretStorage.get(lastEndpoint || '')) || auth.accessToken
+        const tokenSource = (await secretStorage.get((lastEndpoint + ":tokenSource") || '')) || auth.tokenSource
         logDebug(
             'AuthProvider:init:lastEndpoint',
             token?.trim() ? 'Token recovered from secretStorage' : 'No token found in secretStorage',
@@ -49,6 +50,7 @@ class AuthProvider implements vscode.Disposable {
         await this.auth({
             endpoint: lastEndpoint,
             token: token || null,
+            tokenSource: tokenSource || null,
             isExtensionStartup: true,
         }).catch(error => logError('AuthProvider:init:failed', lastEndpoint, { verbose: error }))
     }
@@ -159,12 +161,14 @@ class AuthProvider implements vscode.Disposable {
         {
             endpoint,
             token,
+            tokenSource,
             customHeaders,
             isExtensionStartup = false,
             isOfflineMode = false,
         }: {
             endpoint: string
             token: string | null
+            tokenSource: string | null
             customHeaders?: Record<string, string> | null
             isExtensionStartup?: boolean
             isOfflineMode?: boolean
@@ -179,14 +183,14 @@ class AuthProvider implements vscode.Disposable {
         const { configuration } = await currentResolvedConfig()
         const config: PickResolvedConfiguration<{ configuration: 'customHeaders'; auth: true }> = {
             configuration: { customHeaders: customHeaders || configuration.customHeaders },
-            auth: { serverEndpoint: formattedEndpoint, accessToken: token },
+            auth: { serverEndpoint: formattedEndpoint, accessToken: token, tokenSource: tokenSource },
         }
 
         try {
             const authStatus = await this.makeAuthStatus(config, isOfflineMode)
 
             if (!isOfflineMode) {
-                await this.storeAuthInfo(config.auth.serverEndpoint, config.auth.accessToken)
+                await this.storeAuthInfo(config.auth.serverEndpoint, config.auth.accessToken, tokenSource)
             }
 
             await vscode.commands.executeCommand(
@@ -226,6 +230,7 @@ class AuthProvider implements vscode.Disposable {
         return await this.auth({
             endpoint: auth.serverEndpoint,
             token: auth.accessToken,
+            tokenSource: auth.tokenSource,
             customHeaders: configuration.customHeaders,
         })
     }
@@ -258,14 +263,15 @@ class AuthProvider implements vscode.Disposable {
     // Store endpoint in local storage, token in secret storage, and update endpoint history.
     private async storeAuthInfo(
         endpoint: string | null | undefined,
-        token: string | null | undefined
+        token: string | null | undefined, 
+        tokenSource: string | null | undefined 
     ): Promise<void> {
         if (!endpoint) {
             return
         }
         await localStorage.saveEndpoint(endpoint)
-        if (token) {
-            await secretStorage.storeToken(endpoint, token)
+        if (token && tokenSource) {
+            await secretStorage.storeToken(endpoint, token, tokenSource)
         }
     }
 
