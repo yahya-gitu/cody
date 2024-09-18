@@ -4,6 +4,7 @@ import {
     NEVER,
     NO_INITIAL_VALUE,
     type ObservableValue,
+    abortableOperation,
     allValuesFrom,
     combineLatest,
     concat,
@@ -49,6 +50,13 @@ describe('promiseFactoryToObservable', () => {
         await expect(allValuesFrom(observable)).rejects.toThrow('test error')
     })
 
+    test('emits error when promise throws', async () => {
+        const observable = promiseFactoryToObservable(() => {
+            throw new Error('test error')
+        })
+        await expect(allValuesFrom(observable)).rejects.toThrow('test error')
+    })
+
     test('completes without emitting when aborted', async () => {
         vi.useFakeTimers()
         const observable = promiseFactoryToObservable(
@@ -62,6 +70,70 @@ describe('promiseFactoryToObservable', () => {
         await done
         expect(values).toEqual([])
         vi.useRealTimers()
+    })
+})
+
+describe('abortableOperation', () => {
+    test('emits resolved value and completes', async () => {
+        const source = observableOfSequence(1, 2, 3)
+        const operation = vi.fn((input: number, signal: AbortSignal) => Promise.resolve(input * 2))
+        const observable = source.pipe(abortableOperation(operation))
+        expect(await allValuesFrom(observable)).toEqual([2, 4, 6])
+        expect(operation).toHaveBeenCalledTimes(3)
+    })
+
+    test('emits error when operation rejects', async () => {
+        const source = observableOfSequence(1)
+        const operation = vi.fn(() => Promise.reject(new Error('test error')))
+        const observable = source.pipe(abortableOperation(operation))
+        await expect(allValuesFrom(observable)).rejects.toThrow('test error')
+    })
+
+    test('emits error when operation throws', async () => {
+        const source = observableOfSequence(1)
+        const operation = vi.fn(() => {
+            throw new Error('test error')
+        })
+        const observable = source.pipe(abortableOperation(operation))
+        await expect(allValuesFrom(observable)).rejects.toThrow('test error')
+    })
+
+    test('aborts operation when unsubscribed', async () => {
+        vi.useFakeTimers()
+        const source = observableOfSequence(1)
+        const operation = vi.fn(
+            (input: number, signal: AbortSignal) =>
+                new Promise<number>(resolve => {
+                    const timeout = setTimeout(() => resolve(input * 2), 1000)
+                    signal.addEventListener('abort', () => clearTimeout(timeout))
+                })
+        )
+        const observable = source.pipe(abortableOperation(operation))
+        const { values, done, unsubscribe } = readValuesFrom(observable)
+
+        await vi.advanceTimersByTimeAsync(500)
+        unsubscribe()
+        await done
+
+        expect(values).toEqual([])
+        expect(operation).toHaveBeenCalledTimes(1)
+    })
+
+    test('handles multiple inputs', async () => {
+        vi.useFakeTimers()
+        const source = observableOfTimedSequence(10, 'a', 20, 'b', 30, 'c')
+        const operation = vi.fn(
+            (input: string, signal: AbortSignal) =>
+                new Promise<string>(resolve => setTimeout(() => resolve(`${input}${input}`), 15))
+        )
+        const observable = source.pipe(abortableOperation(operation))
+
+        const { values, done } = readValuesFrom(observable)
+        await vi.runAllTimersAsync()
+        await done
+
+        expect(values).toStrictEqual<typeof values>(['aa', 'bb', 'cc'])
+        expect(operation).toHaveBeenCalledTimes(3)
     })
 })
 

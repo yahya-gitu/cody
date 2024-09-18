@@ -18,7 +18,9 @@ import {
     concat,
     distinctUntilChanged,
     firstValueFrom,
+    mergeMap,
     promiseFactoryToObservable,
+    shareReplay,
 } from '../../misc/observable'
 import { addTraceparent, wrapInActiveSpan } from '../../tracing'
 import { isError } from '../../utils'
@@ -1630,10 +1632,16 @@ export class ClientConfigSingleton {
     /**
      * An observable that immediately emits the last-cached value and then emits all updated values.
      */
-    public readonly changes: Observable<CodyClientConfig> = concat(
-        promiseFactoryToObservable(signal => this.getConfig(signal)),
-        this.changeNotifications
-    ).pipe(distinctUntilChanged())
+    public readonly changes: Observable<CodyClientConfig | null> = authStatus.pipe(
+        mergeMap(() =>
+            concat(
+                promiseFactoryToObservable(async signal => (await this.getConfig(signal)) ?? null).pipe(
+                    shareReplay()
+                ),
+                this.changeNotifications
+            )
+        )
+    )
 
     // Constructor is private to prevent creating new instances outside of the class
     private constructor() {
@@ -1648,11 +1656,13 @@ export class ClientConfigSingleton {
                 ),
                 distinctUntilChanged(),
                 abortableOperation(async (authStatus, signal) => {
+                    this.inflightRefreshConfig?.abort()
+                    this.inflightRefreshConfigPromise = null
+                    this.cachedClientConfig = undefined
+                    this.cachedAt = 0
+
                     if (authStatus.authenticated) {
-                        this.refreshConfig(signal).catch(() => {})
-                    } else {
-                        this.cachedClientConfig = undefined
-                        this.cachedAt = 0
+                        await this.refreshConfig(signal).catch(() => {})
                     }
                 })
             )
@@ -1678,7 +1688,7 @@ export class ClientConfigSingleton {
                     return this.refreshConfig(signal)
                 // biome-ignore lint/suspicious/noFallthroughSwitchClause: This is intentional
                 case 'async':
-                    this.refreshConfig(signal)
+                    this.refreshConfig(signal).catch(() => {})
                 case false:
                     return this.cachedClientConfig
             }
@@ -1714,23 +1724,37 @@ export class ClientConfigSingleton {
         return false
     }
 
+    private inflightRefreshConfig: AbortController | null = null
+    private inflightRefreshConfigPromise: Promise<CodyClientConfig> | null = null
+
     // Refreshes the config features by fetching them from the server and caching the result
     private async refreshConfig(signal?: AbortSignal): Promise<CodyClientConfig> {
         logDebug('ClientConfigSingleton', 'refreshing configuration')
 
+        if (this.inflightRefreshConfigPromise) {
+            return this.inflightRefreshConfigPromise
+        }
+
+        if (this.inflightRefreshConfig) {
+            this.inflightRefreshConfig.abort()
+        }
+        const abortController = dependentAbortController(signal)
+        this.inflightRefreshConfig = abortController
+
         // Determine based on the site version if /.api/client-config is available.
-        return graphqlClient
+        const promise = graphqlClient
             .getSiteVersion(signal)
             .then(siteVersion => {
                 signal?.throwIfAborted()
                 if (isError(siteVersion)) {
-                    if (!isAbortError(siteVersion)) {
-                        logError(
-                            'ClientConfigSingleton',
-                            'Failed to determine site version, GraphQL error',
-                            siteVersion
-                        )
+                    if (isAbortError(siteVersion)) {
+                        throw siteVersion
                     }
+                    logError(
+                        'ClientConfigSingleton',
+                        'Failed to determine site version, GraphQL error',
+                        siteVersion
+                    )
                     return false // assume /.api/client-config is not supported
                 }
 
@@ -1792,6 +1816,16 @@ export class ClientConfigSingleton {
                 }
                 throw e
             })
+            .finally(() => {
+                if (this.inflightRefreshConfigPromise === promise) {
+                    this.inflightRefreshConfigPromise = null
+                }
+                if (this.inflightRefreshConfig === abortController) {
+                    this.inflightRefreshConfig = null
+                }
+            })
+        this.inflightRefreshConfigPromise = promise
+        return this.inflightRefreshConfigPromise
     }
 
     private async fetchClientConfigLegacy(signal?: AbortSignal): Promise<CodyClientConfig> {
