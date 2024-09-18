@@ -4,18 +4,19 @@ import {
     type AuthenticatedAuthStatus,
     type CodyClientConfig,
     DOTCOM_URL,
-    Model,
     ModelTag,
     ModelUsage,
     RestClient,
     type ServerModel,
     type ServerModelConfiguration,
+    createModel,
     featureFlagProvider,
     getDotComDefaultModels,
     mockAuthStatus,
     mockResolvedConfig,
     modelsService,
 } from '@sourcegraph/cody-shared'
+import { createModelFromServerModel } from '@sourcegraph/cody-shared/src/models/model'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { localStorage } from '../services/LocalStorageProvider'
 import { secretStorage } from '../services/SecretStorageProvider'
@@ -88,7 +89,7 @@ describe('syncModels', () => {
         // i.e. this gets the one and only chat model from the Sourcegraph instance.
         expect(setModelsSpy).not.toHaveBeenCalledWith(getDotComDefaultModels())
         expect(setModelsSpy).toHaveBeenCalledWith([
-            new Model({
+            createModel({
                 id: authStatus.configOverwrites!.chatModel!,
                 usage: [ModelUsage.Chat, ModelUsage.Edit],
                 contextWindow: getEnterpriseContextWindow(chatModel, authStatus.configOverwrites!),
@@ -187,7 +188,7 @@ describe('syncModels from the server', () => {
             },
             CLIENT_CONFIG_MODELS_API_ENABLED
         )
-        expect(setModelsSpy).toHaveBeenCalledWith(testServerSideModels.map(Model.fromApi))
+        expect(setModelsSpy).toHaveBeenCalledWith(testServerSideModels.map(createModelFromServerModel))
     })
 })
 
