@@ -500,7 +500,7 @@ function registerAuthCommands(disposables: vscode.Disposable[]): void {
                     throw new TypeError('accessToken is required')
                 }
                 await localStorage.saveEndpoint(serverEndpoint)
-                await secretStorage.storeToken(serverEndpoint, accessToken, tokenSource)
+                await secretStorage.storeToken(serverEndpoint, accessToken, 'nonredirect')
                 return await authProvider.auth({
                     endpoint: serverEndpoint,
                     token: accessToken,
