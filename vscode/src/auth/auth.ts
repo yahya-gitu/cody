@@ -297,7 +297,7 @@ export async function tokenCallbackHandler(
 
     const params = new URLSearchParams(uri.query)
     const token = params.get('code') || params.get('token')
-    const tokenSource = 'manual'
+    const tokenSource = 'redirect'
     const endpoint = currentAuthStatus().endpoint
     if (!token || !endpoint) {
         return

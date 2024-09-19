@@ -3,7 +3,7 @@ import type { FileURI } from './common/uri'
 
 import type { PromptString } from './prompt/prompt-string'
 import type { ReadonlyDeep } from './utils'
-
+import type { TokenSource } from "./../dist/configuration"
 /**
  * The user's authentication credentials, which are stored separately from the rest of the
  * configuration.
@@ -11,7 +11,7 @@ import type { ReadonlyDeep } from './utils'
 export interface AuthCredentials {
     serverEndpoint: string
     accessToken: string | null
-    tokenSource: string | null
+    tokenSource: TokenSource
 }
 
 export type ConfigurationUseContext = 'embeddings' | 'keyword' | 'none' | 'blended' | 'unified'

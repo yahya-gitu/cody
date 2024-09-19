@@ -40,7 +40,7 @@ class AuthProvider implements vscode.Disposable {
         const { auth } = await currentResolvedConfig()
         const lastEndpoint = localStorage?.getEndpoint() || auth.serverEndpoint
         const token = (await secretStorage.get(lastEndpoint || '')) || auth.accessToken
-        const tokenSource = (await secretStorage.getTokenSource(lastEndpoint || '')) || auth.tokenSource
+        const tokenSource = ((await secretStorage.getTokenSource(lastEndpoint || '')) || auth.tokenSource) as TokenSource
         logDebug(
             'AuthProvider:init:lastEndpoint',
             token?.trim() ? 'Token recovered from secretStorage' : 'No token found in secretStorage',
@@ -50,7 +50,7 @@ class AuthProvider implements vscode.Disposable {
         await this.auth({
             endpoint: lastEndpoint,
             token: token || null,
-            tokenSource: tokenSource(tokenSource) || null,
+            tokenSource: (tokenSource) || null,
             isExtensionStartup: true,
         }).catch(error => logError('AuthProvider:init:failed', lastEndpoint, { verbose: error }))
     }
@@ -268,7 +268,7 @@ class AuthProvider implements vscode.Disposable {
     private async storeAuthInfo(
         endpoint: string | null | undefined,
         token: string | null | undefined,
-        tokenSource: string | null | undefined
+        tokenSource: TokenSource
     ): Promise<void> {
         if (!endpoint) {
             return
