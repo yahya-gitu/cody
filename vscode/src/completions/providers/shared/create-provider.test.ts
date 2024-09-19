@@ -46,7 +46,7 @@ describe('createProvider', () => {
     describe('local settings', () => {
         beforeEach(() => {
             mockAuthStatus(AUTH_STATUS_FIXTURE_AUTHED_DOTCOM)
-            vi.spyOn(modelsService, 'modelsChanges', 'get').mockReturnValue(
+            vi.spyOn(modelsService, 'modelsChangesEmptyForPending', 'get').mockReturnValue(
                 Observable.of(EMPTY_MODELS_DATA)
             )
         })

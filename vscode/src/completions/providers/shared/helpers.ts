@@ -6,11 +6,8 @@ import {
     type AutocompleteProviderID,
     type CodeCompletionsParams,
     type ModelsData,
-    type ModelsService,
-    TestLocalStorageForModelPreferences,
     createModelFromServerModel,
     firstValueFrom,
-    mockAuthStatus,
     modelsService,
 } from '@sourcegraph/cody-shared'
 
@@ -72,17 +69,18 @@ export async function getAutocompleteProviderFromServerSideModelConfig({
     const newDefaultModel = mockedConfig.models.find(model => model.modelRef === modelRef)!
     mockedConfig.defaultModels.codeCompletion = newDefaultModel.modelRef
 
-    mockModelsServiceWithModelsData({
-        primaryModels: mockedConfig.models.map(createModelFromServerModel),
-        localModels: [],
-        preferences: {
-            defaults: {
-                autocomplete: newDefaultModel.modelName,
+    vi.spyOn(modelsService, 'modelsChangesEmptyForPending', 'get').mockReturnValue(
+        Observable.of({
+            primaryModels: mockedConfig.models.map(createModelFromServerModel),
+            localModels: [],
+            preferences: {
+                defaults: {
+                    autocomplete: newDefaultModel.modelName,
+                },
+                selected: {},
             },
-            selected: {},
-        },
-    })
-    mockAuthStatus(authStatus)
+        } satisfies Partial<ModelsData> as ModelsData)
+    )
 
     return createProviderForTest({
         config: {
@@ -95,14 +93,6 @@ export async function getAutocompleteProviderFromServerSideModelConfig({
     })
 }
 
-function mockModelsServiceWithModelsData(modelsData: ModelsData): ModelsService {
-    modelsService.storage = new TestLocalStorageForModelPreferences()
-    vi.spyOn(modelsService, 'modelsChanges', 'get').mockReturnValue(Observable.of(modelsData))
-    vi.spyOn(modelsService, 'models', 'get').mockReturnValue(modelsData.primaryModels)
-    vi.spyOn(modelsService, 'preferences', 'get').mockReturnValue(modelsData.preferences)
-    return modelsService
-}
-
 /**
  * Creates autocomplete provider from the mocked site-config Cody LLM configuration.
  */
@@ -112,6 +102,14 @@ export function getAutocompleteProviderFromSiteConfigCodyLLMConfiguration({
     isDotCom,
 }: { providerId: AutocompleteProviderID; legacyModel: string; isDotCom: boolean }): Promise<Provider> {
     const authStatus = isDotCom ? AUTH_STATUS_FIXTURE_AUTHED_DOTCOM : AUTH_STATUS_FIXTURE_AUTHED
+
+    vi.spyOn(modelsService, 'modelsChangesEmptyForPending', 'get').mockReturnValue(
+        Observable.of({
+            primaryModels: [],
+            localModels: [],
+            preferences: { defaults: {}, selected: {} },
+        } satisfies Partial<ModelsData> as ModelsData)
+    )
 
     return createProviderForTest({
         config: {

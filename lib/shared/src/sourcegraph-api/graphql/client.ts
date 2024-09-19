@@ -1656,7 +1656,7 @@ export class ClientConfigSingleton {
                 ),
                 distinctUntilChanged(),
                 abortableOperation(async (authStatus, signal) => {
-                    this.inflightRefreshConfig?.abort()
+                    this.inflightRefreshConfig?.abort('invalidate due to authStatus change')
                     this.inflightRefreshConfigPromise = null
                     this.cachedClientConfig = undefined
                     this.cachedAt = 0
@@ -1685,7 +1685,7 @@ export class ClientConfigSingleton {
         try {
             switch (this.shouldFetch()) {
                 case 'sync':
-                    return this.refreshConfig(signal)
+                    return (await this.refreshConfig(signal)) ?? undefined
                 // biome-ignore lint/suspicious/noFallthroughSwitchClause: This is intentional
                 case 'async':
                     this.refreshConfig(signal).catch(() => {})
@@ -1725,10 +1725,10 @@ export class ClientConfigSingleton {
     }
 
     private inflightRefreshConfig: AbortController | null = null
-    private inflightRefreshConfigPromise: Promise<CodyClientConfig> | null = null
+    private inflightRefreshConfigPromise: Promise<CodyClientConfig | null> | null = null
 
     // Refreshes the config features by fetching them from the server and caching the result
-    private async refreshConfig(signal?: AbortSignal): Promise<CodyClientConfig> {
+    private async refreshConfig(signal?: AbortSignal): Promise<CodyClientConfig | null> {
         logDebug('ClientConfigSingleton', 'refreshing configuration')
 
         if (this.inflightRefreshConfigPromise) {
@@ -1740,6 +1740,8 @@ export class ClientConfigSingleton {
         }
         const abortController = dependentAbortController(signal)
         this.inflightRefreshConfig = abortController
+
+        signal = abortController.signal
 
         // Determine based on the site version if /.api/client-config is available.
         const promise = graphqlClient
@@ -1804,6 +1806,7 @@ export class ClientConfigSingleton {
                     })
             })
             .then(clientConfig => {
+                signal?.throwIfAborted()
                 logDebug('ClientConfigSingleton', 'refreshed', JSON.stringify(clientConfig))
                 this.cachedClientConfig = clientConfig
                 this.cachedAt = Date.now()
@@ -1814,7 +1817,7 @@ export class ClientConfigSingleton {
                 if (!isAbortError(e)) {
                     logError('ClientConfigSingleton', 'failed to refresh client config', e)
                 }
-                throw e
+                return null
             })
             .finally(() => {
                 if (this.inflightRefreshConfigPromise === promise) {

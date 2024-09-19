@@ -222,9 +222,17 @@ export class ModelsService {
         if (testing__modelsChanges) {
             this.modelsChanges = testing__modelsChanges
         }
+        this.modelsChanges = this.modelsChanges.pipe(shareReplay())
+        this.modelsChangesEmptyForPending = this.modelsChanges.pipe(
+            map((data: ModelsData | 'pending') => (data === 'pending' ? EMPTY_MODELS_DATA : data)),
+            shareReplay()
+        )
+        this.modelsChangesWaitForPending = this.modelsChanges.pipe(
+            filter((data: ModelsData | 'pending') => data !== 'pending')
+        )
         this.storedValue = storeLastValue(this.modelsChangesEmptyForPending)
 
-        this.syncPreferencesSubscription = this.modelsChangesWaitForPending()
+        this.syncPreferencesSubscription = this.modelsChangesWaitForPending
             .pipe(
                 tap(data => {
                     if (this.storage) {
@@ -266,14 +274,9 @@ export class ModelsService {
         ClientConfigSingleton.getInstance().changes
     ).pipe(distinctUntilChanged())
 
-    public modelsChangesEmptyForPending: Observable<ModelsData> = this.modelsChanges.pipe(
-        map((data: ModelsData | 'pending') => (data === 'pending' ? EMPTY_MODELS_DATA : data)),
-        shareReplay()
-    )
+    public modelsChangesEmptyForPending: Observable<ModelsData>
 
-    public modelsChangesWaitForPending(): Observable<ModelsData> {
-        return this.modelsChanges.pipe(filter((data: ModelsData | 'pending') => data !== 'pending'))
-    }
+    public modelsChangesWaitForPending: Observable<ModelsData>
 
     /**
      * The list of models.
@@ -283,13 +286,6 @@ export class ModelsService {
     public get models(): Model[] {
         const data = this.storedValue.value.last
         return data ? data.primaryModels.concat(data.localModels) : []
-    }
-
-    /**
-     * @internal `public` for testing only.
-     */
-    public get preferences(): SitePreferences | undefined {
-        return this.storedValue.value.last?.preferences
     }
 
     private getModelsByType(usage: ModelUsage): Observable<Model[]> {
@@ -334,13 +330,12 @@ export class ModelsService {
                     m => this._isModelAvailable(modelsData, authStatus, m) === true
                 )
 
-                const preferences = this.preferences
-                if (preferences) {
+                if (modelsData.preferences) {
                     // Check to see if the user has a selected a default model for this
                     // usage type and if not see if there is a server sent default type
                     const selected = this.resolveModel(
                         modelsData,
-                        preferences.selected[type] ?? preferences.defaults[type]
+                        modelsData.preferences.selected[type] ?? modelsData.preferences.defaults[type]
                     )
                     if (selected && this._isModelAvailable(modelsData, authStatus, selected) === true) {
                         return selected
@@ -361,7 +356,7 @@ export class ModelsService {
     }
 
     public async setSelectedModel(type: ModelUsage, model: Model | string): Promise<void> {
-        const modelsData = await firstValueFrom(this.modelsChangesWaitForPending())
+        const modelsData = await firstValueFrom(this.modelsChangesWaitForPending)
         const resolved = this.resolveModel(modelsData, model)
         if (!resolved) {
             return

@@ -214,7 +214,9 @@ describe('server sent models', async () => {
     })
 
     it('allows updating the selected model', async () => {
-        vi.spyOn(modelsService, 'modelsChangesWaitForPending').mockReturnValue(Observable.of(result))
+        vi.spyOn(modelsService, 'modelsChangesWaitForPending', 'get').mockReturnValue(
+            Observable.of(result)
+        )
         await modelsService.setSelectedModel(ModelUsage.Chat, titan)
         expect(storage.data?.[AUTH_STATUS_FIXTURE_AUTHED.endpoint].selected.chat).toBe(titan.id)
     })
@@ -314,7 +316,6 @@ describe('syncModels', () => {
                 schemaVersion: '',
             }
         })
-        console.log('---')
         clientConfigSubject.next({
             modelsAPIEnabled: true,
         } satisfies Partial<CodyClientConfig> as CodyClientConfig)
@@ -337,7 +338,7 @@ describe('syncModels', () => {
             },
         ])
         values.length = 0
-        expect(mockFetchServerSideModels).toHaveBeenCalledTimes(2) // TODO(sqs)#observe: really want 1 time
+        expect(mockFetchServerSideModels).toHaveBeenCalledTimes(1)
 
         // Does not emit anything when the new data can't be computed synchronously (i.e., it
         // requires a fetch).

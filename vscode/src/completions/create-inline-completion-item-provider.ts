@@ -46,8 +46,6 @@ class NoopCompletionItemProvider implements vscode.InlineCompletionItemProvider 
     }
 }
 
-let acIndex = 0
-
 export function createInlineCompletionItemProvider({
     config: { configuration },
     authStatus,
@@ -93,9 +91,6 @@ export function createInlineCompletionItemProvider({
         switchMap(documentFilters =>
             createProvider({ config: { configuration }, authStatus }).pipe(
                 createDisposables(providerOrError => {
-                    const acIndexThis = acIndex++
-                    logDebug('AutocompleteProvider:' + acIndexThis, 'creating')
-
                     if (providerOrError instanceof Error) {
                         logDebug('AutocompleteProvider', providerOrError.message)
 
@@ -128,19 +123,10 @@ export function createInlineCompletionItemProvider({
                         createBfgRetriever,
                     })
 
-                    logDebug('AutocompleteProvider:' + acIndexThis, 'Registered completion provider')
                     return [
                         vscode.commands.registerCommand('cody.autocomplete.manual-trigger', () =>
                             completionsProvider.manuallyTriggerCompletion()
                         ),
-                        {
-                            dispose: () => {
-                                logDebug(
-                                    'AutocompleteProvider:' + acIndexThis,
-                                    'Disposed completion provider'
-                                )
-                            },
-                        },
                         vscode.languages.registerInlineCompletionItemProvider(
                             [{ notebookType: '*' }, ...documentFilters],
                             completionsProvider
