@@ -921,7 +921,11 @@ export function getVSCodeConfigurationWithAccessToken(
 ): ResolvedConfiguration {
     return {
         configuration: { ...DEFAULT_VSCODE_SETTINGS, ...config },
-        auth: { serverEndpoint: 'https://sourcegraph.com', accessToken: 'test_access_token', tokenSource: 'nonredirect' },
+        auth: {
+            serverEndpoint: 'https://sourcegraph.com',
+            accessToken: 'test_access_token',
+            tokenSource: 'nonredirect',
+        },
         clientState: {} satisfies Partial<ClientState> as ClientState,
     }
 }
