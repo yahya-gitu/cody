@@ -33,6 +33,7 @@ interface ChatboxProps {
     setView: (view: View) => void
     smartApplyEnabled?: boolean
     experimentalOneBoxEnabled?: boolean
+    isUnifiedPromptsAvailable?: boolean
 }
 
 export const Chat: React.FunctionComponent<React.PropsWithChildren<ChatboxProps>> = ({
@@ -48,6 +49,7 @@ export const Chat: React.FunctionComponent<React.PropsWithChildren<ChatboxProps>
     setView,
     smartApplyEnabled,
     experimentalOneBoxEnabled,
+    isUnifiedPromptsAvailable,
 }) => {
     const telemetryRecorder = useTelemetryRecorder()
 
@@ -236,7 +238,11 @@ export const Chat: React.FunctionComponent<React.PropsWithChildren<ChatboxProps>
                 experimentalOneBoxEnabled={experimentalOneBoxEnabled}
             />
             {transcript.length === 0 && showWelcomeMessage && (
-                <WelcomeMessage IDE={userInfo.ide} setView={setView} />
+                <WelcomeMessage
+                    IDE={userInfo.ide}
+                    setView={setView}
+                    isUnifiedPromptsAvailable={isUnifiedPromptsAvailable}
+                />
             )}
             {scrollableParent && (
                 <ScrollDown scrollableParent={scrollableParent} onClick={handleScrollDownClick} />

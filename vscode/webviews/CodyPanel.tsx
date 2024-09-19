@@ -79,6 +79,7 @@ export const CodyPanel: FunctionComponent<
                     currentView={view}
                     setView={setView}
                     IDE={config.agentIDE || CodyIDE.VSCode}
+                    isUnifiedPromptsAvailable={config.unifiedPromptsAvailable}
                     onDownloadChatClick={onDownloadChatClick}
                 />
             )}
@@ -97,6 +98,7 @@ export const CodyPanel: FunctionComponent<
                         scrollableParent={tabContainerRef.current}
                         smartApplyEnabled={smartApplyEnabled}
                         experimentalOneBoxEnabled={experimentalOneBoxEnabled}
+                        isUnifiedPromptsAvailable={config.unifiedPromptsAvailable}
                         setView={setView}
                     />
                 )}
