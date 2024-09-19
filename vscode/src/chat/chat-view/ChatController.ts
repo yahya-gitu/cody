@@ -551,7 +551,7 @@ export class ChatController implements vscode.Disposable, vscode.WebviewViewProv
                             const authStatus = await authProvider.auth({
                                 endpoint: DOTCOM_URL.href,
                                 token,
-                                tokenSource: null,
+                                tokenSource: undefined,
                             })
                             if (!authStatus?.authenticated) {
                                 void vscode.window.showErrorMessage(

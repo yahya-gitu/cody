@@ -577,7 +577,7 @@ async function registerTestCommands(
         }),
         // Access token - this is only used in configuration tests
         vscode.commands.registerCommand('cody.test.token', async (endpoint, token) =>
-            authProvider.auth({ endpoint, token })
+            authProvider.auth({ endpoint, token, tokenSource: 'nonredirect' })
         )
     )
 }

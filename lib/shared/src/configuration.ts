@@ -12,7 +12,7 @@ import type { ReadonlyDeep } from './utils'
 export interface AuthCredentials {
     serverEndpoint: string
     accessToken: string | null
-    tokenSource: TokenSource
+    tokenSource?: TokenSource | undefined
 }
 
 export type ConfigurationUseContext = 'embeddings' | 'keyword' | 'none' | 'blended' | 'unified'
