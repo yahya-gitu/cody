@@ -169,7 +169,7 @@ class AuthProvider implements vscode.Disposable {
         }: {
             endpoint: string
             token: string | null
-            tokenSource: TokenSource | null
+            tokenSource: TokenSource  | undefined
             customHeaders?: Record<string, string> | null
             isExtensionStartup?: boolean
             isOfflineMode?: boolean
@@ -269,7 +269,7 @@ class AuthProvider implements vscode.Disposable {
     private async storeAuthInfo(
         endpoint: string | null | undefined,
         token: string | null | undefined,
-        tokenSource: TokenSource
+        tokenSource: TokenSource|  undefined
     ): Promise<void> {
         if (!endpoint) {
             return

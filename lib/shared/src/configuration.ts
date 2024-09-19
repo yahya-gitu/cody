@@ -1,9 +1,10 @@
 import type { EmbeddingsProvider } from './codebase-context/context-status'
 import type { FileURI } from './common/uri'
 
+export type TokenSource = 'redirect' | 'nonredirect'
+
 import type { PromptString } from './prompt/prompt-string'
 import type { ReadonlyDeep } from './utils'
-import type { TokenSource } from "./../dist/configuration"
 /**
  * The user's authentication credentials, which are stored separately from the rest of the
  * configuration.

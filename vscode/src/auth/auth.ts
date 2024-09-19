@@ -6,7 +6,7 @@ import {
     DOTCOM_URL,
     currentAuthStatus,
     getCodyAuthReferralCode,
-    graphqlClient,
+    // graphqlClient,
     isDotCom,
     telemetryRecorder,
 } from '@sourcegraph/cody-shared'
@@ -70,7 +70,7 @@ export async function showSignInMenu(
             let authStatus = await authProvider.auth({
                 endpoint: selectedEndpoint,
                 token: token || null,
-                tokenSource: tokenSource || null,
+                tokenSource: tokenSource || undefined,
             })
             if (!authStatus?.authenticated) {
                 const newToken = await showAccessTokenInputBox(item.uri)
@@ -80,7 +80,7 @@ export async function showSignInMenu(
                 authStatus = await authProvider.auth({
                     endpoint: selectedEndpoint,
                     token: newToken || null,
-                    tokenSource: tokenSource || null,
+                    tokenSource: tokenSource ,
                 })
             }
             await showAuthResultMessage(selectedEndpoint, authStatus)
@@ -363,13 +363,13 @@ export async function showSignOutMenu(): Promise<void> {
  * Log user out of the selected endpoint (remove token from secret).
  */
 async function signOut(endpoint: string): Promise<void> {
-    const token = await secretStorage.getToken(endpoint)
+    // const token = await secretStorage.getToken(endpoint)
     // Delete the access token from the Sourcegraph instance
-    if (token) {
-        await graphqlClient.DeleteAccessToken(token)
-    }
+    // if (token) {
+    //     await graphqlClient.DeleteAccessToken(token)
+    // }
     await secretStorage.deleteToken(endpoint)
     await localStorage.deleteEndpoint()
-    await authProvider.auth({ endpoint, token: null, tokenSource: null })
+    await authProvider.auth({ endpoint, token: null, tokenSource: undefined })
     await vscode.commands.executeCommand('setContext', 'cody.activated', false)
 }

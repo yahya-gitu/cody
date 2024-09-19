@@ -472,7 +472,7 @@ export class ChatController implements vscode.Disposable, vscode.WebviewViewProv
                         endpoint: '',
                         token: '',
                         isOfflineMode: true,
-                        tokenSource: null,
+                        tokenSource: undefined,
                     })
                     break
                 }
@@ -489,7 +489,7 @@ export class ChatController implements vscode.Disposable, vscode.WebviewViewProv
                             const authStatus = await authProvider.auth({
                                 endpoint,
                                 token,
-                                tokenSource: null,
+                                tokenSource: undefined,
                             })
                             telemetryRecorder.recordEvent(
                                 'cody.auth.fromTokenReceiver.web',
@@ -528,7 +528,7 @@ export class ChatController implements vscode.Disposable, vscode.WebviewViewProv
                     await authProvider.auth({
                         endpoint: message.endpoint,
                         token: message.value,
-                        tokenSource: null,
+                        tokenSource: undefined,
                     })
                     break
                 }
