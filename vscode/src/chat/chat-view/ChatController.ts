@@ -575,10 +575,7 @@ export class ChatController implements vscode.Disposable, vscode.WebviewViewProv
     }
 
     private async isOneBoxEnabled(): Promise<boolean> {
-        return (
-            vscode.workspace.getConfiguration().get<boolean>('cody.internal.onebox') ||
-            (await featureFlagProvider.evaluateFeatureFlag(FeatureFlag.CodyExperimentalOneBox))
-        )
+        return await featureFlagProvider.evaluateFeatureFlag(FeatureFlag.CodyExperimentalOneBox)
     }
 
     private async getConfigForWebview(): Promise<ConfigurationSubsetForWebview & LocalEnv> {
@@ -586,7 +583,6 @@ export class ChatController implements vscode.Disposable, vscode.WebviewViewProv
         const sidebarViewOnly = this.extensionClient.capabilities?.webviewNativeConfig?.view === 'single'
         const isEditorViewType = this.webviewPanelOrView?.viewType === 'cody.editorPanel'
         const webviewType = isEditorViewType && !sidebarViewOnly ? 'editor' : 'sidebar'
-        const experimentalOneBox = await this.isOneBoxEnabled()
 
         return {
             agentIDE: configuration.agentIDE ?? CodyIDE.VSCode,
@@ -597,7 +593,6 @@ export class ChatController implements vscode.Disposable, vscode.WebviewViewProv
             serverEndpoint: auth.serverEndpoint,
             experimentalNoodle: configuration.experimentalNoodle,
             smartApply: this.isSmartApplyEnabled(),
-            experimentalOneBox,
             webviewType,
             multipleWebviewsEnabled: !sidebarViewOnly,
             internalDebugContext: configuration.internalDebugContext,
@@ -869,7 +864,7 @@ export class ChatController implements vscode.Disposable, vscode.WebviewViewProv
         this.chatModel.setLastMessageContext(context, contextAlternatives)
         this.chatModel.addBotMessage({
             text: PromptString.unsafe_fromLLMResponse(
-                'You have set `"cody.internal.onebox": true` in your vscode settings.'
+                '`cody-experimental-one-box` feature flag is turned on.'
             ),
         })
 
