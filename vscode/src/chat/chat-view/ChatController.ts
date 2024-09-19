@@ -30,12 +30,14 @@ import {
     Typewriter,
     addMessageListenersForExtensionAPI,
     authStatus,
+    createDisposables,
     createMessageAPIForExtension,
     currentAuthStatus,
     currentAuthStatusAuthed,
     currentAuthStatusOrNotReadyYet,
     currentResolvedConfig,
     featureFlagProvider,
+    firstValueFrom,
     getContextForChatMessage,
     graphqlClient,
     hydrateAfterPostMessage,
@@ -49,11 +51,14 @@ import {
     logError,
     modelsService,
     parseMentionQuery,
+    promiseFactoryToObservable,
     recordErrorToSpan,
     reformatBotMessageForChat,
     serializeChatMessage,
     startWith,
     storeLastValue,
+    subscriptionDisposable,
+    switchMap,
     telemetryRecorder,
     tracer,
     truncatePromptString,
@@ -61,13 +66,6 @@ import {
 
 import type { Span } from '@opentelemetry/api'
 import { captureException } from '@sentry/core'
-import {
-    createDisposables,
-    firstValueFrom,
-    mergeMap,
-    promiseFactoryToObservable,
-    subscriptionDisposable,
-} from '@sourcegraph/cody-shared/src/misc/observable'
 import { TokenCounterUtils } from '@sourcegraph/cody-shared/src/token/counter'
 import type { TelemetryEventParameters } from '@sourcegraph/telemetry'
 import { map } from 'observable-fns'
@@ -1690,7 +1688,7 @@ export class ChatController implements vscode.Disposable, vscode.WebviewViewProv
                     models: () =>
                         modelsService.modelsChanges
                             .pipe(startWith(undefined))
-                            .pipe(mergeMap(() => modelsService.getModels(ModelUsage.Chat))),
+                            .pipe(switchMap(() => modelsService.getModels(ModelUsage.Chat))),
                     highlights: parameters =>
                         promiseFactoryToObservable(() =>
                             graphqlClient.getHighlightedFileChunk(parameters)

@@ -12,12 +12,12 @@ import {
     combineLatest,
     currentResolvedConfig,
     distinctUntilChanged,
-    mergeMap,
     normalizeServerEndpointURL,
     pluck,
     resolvedConfig as resolvedConfig_,
     setAuthStatusObservable as setAuthStatusObservable_,
     startWith,
+    switchMap,
     telemetryRecorder,
     withLatestFrom,
 } from '@sourcegraph/cody-shared'
@@ -49,7 +49,7 @@ class AuthProvider implements vscode.Disposable {
 
         const credentialsChangesNeedingValidation = resolvedConfig.pipe(
             withLatestFrom(this.lastValidatedAndStoredCredentials.pipe(startWith(null))),
-            mergeMap(([config, lastValidatedCredentials]) => {
+            switchMap(([config, lastValidatedCredentials]) => {
                 const credentials: ResolvedConfigurationCredentialsOnly =
                     toCredentialsOnlyNormalized(config)
                 return isEqual(credentials, lastValidatedCredentials)

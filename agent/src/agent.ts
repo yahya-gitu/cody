@@ -10,7 +10,7 @@ import {
     currentAuthStatus,
     currentAuthStatusAuthed,
     firstValueFrom,
-    mergeMap,
+    switchMap,
     telemetryRecorder,
     waitUntilComplete,
 } from '@sourcegraph/cody-shared'
@@ -1251,7 +1251,7 @@ export class Agent extends MessageHandler implements ExtensionClient {
             const models = await firstValueFrom(
                 modelsService
                     .modelsChangesWaitForPending()
-                    .pipe(mergeMap(() => modelsService.getModels(modelUsage)))
+                    .pipe(switchMap(() => modelsService.getModels(modelUsage)))
             )
             return { models }
         })

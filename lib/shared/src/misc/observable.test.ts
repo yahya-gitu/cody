@@ -21,6 +21,7 @@ import {
     shareReplay,
     startWith,
     storeLastValue,
+    switchMap,
     take,
     withLatestFrom,
 } from './observable'
@@ -75,10 +76,10 @@ describe('promiseFactoryToObservable', () => {
 
 describe('abortableOperation', () => {
     test('emits resolved value and completes', async () => {
-        const source = observableOfSequence(1, 2, 3)
-        const operation = vi.fn((input: number, signal: AbortSignal) => Promise.resolve(input * 2))
+        const source = observableOfTimedSequence('a', 1, 'b', 1, 'c')
+        const operation = vi.fn((input: string, signal: AbortSignal) => Promise.resolve(input))
         const observable = source.pipe(abortableOperation(operation))
-        expect(await allValuesFrom(observable)).toEqual([2, 4, 6])
+        expect(await allValuesFrom(observable)).toEqual(['a', 'b', 'c'])
         expect(operation).toHaveBeenCalledTimes(3)
     })
 
@@ -492,11 +493,13 @@ describe('createDisposables', () => {
     test('disposes previous disposable when new value arrives', async () => {
         vi.useFakeTimers()
 
-        const disposableA: VSCodeDisposable = { dispose: vi.fn() }
-        const disposableB: VSCodeDisposable = { dispose: vi.fn() }
+        const record = vi.fn<(value: string) => void>()
+        const disposableA: VSCodeDisposable = { dispose: vi.fn(() => record('dispose(a)')) }
+        const disposableB: VSCodeDisposable = { dispose: vi.fn(() => record('dispose(b)')) }
         const { values, done, unsubscribe } = readValuesFrom(
             observableOfTimedSequence(10, 'a', 10, 'b', 10).pipe(
                 createDisposables((value: string): VSCodeDisposable | undefined => {
+                    record(`create(${value})`)
                     if (value === 'a') {
                         return disposableA
                     }
@@ -512,20 +515,27 @@ describe('createDisposables', () => {
         expect(values).toStrictEqual<typeof values>(['a'])
         expect(disposableA.dispose).not.toHaveBeenCalled()
         expect(disposableB.dispose).not.toHaveBeenCalled()
+        expect(record.mock.calls).toEqual([['create(a)']])
+        record.mockClear()
 
         await vi.advanceTimersByTimeAsync(10)
         expect(values).toStrictEqual<typeof values>(['a', 'b'])
         expect(disposableA.dispose).toHaveBeenCalledTimes(1)
         expect(disposableB.dispose).toHaveBeenCalledTimes(0)
+        expect(record.mock.calls).toEqual([['dispose(a)'], ['create(b)']])
+        record.mockClear()
 
         await vi.advanceTimersByTimeAsync(10)
         expect(values).toStrictEqual<typeof values>(['a', 'b'])
         expect(disposableA.dispose).toHaveBeenCalledTimes(1)
         expect(disposableB.dispose).toHaveBeenCalledTimes(0)
+        expect(record.mock.calls).toEqual([])
+        record.mockClear()
 
         unsubscribe()
         await done
         expect(disposableB.dispose).toHaveBeenCalledTimes(1)
+        expect(record.mock.calls).toEqual([['dispose(b)']])
     })
 
     test('disposes upon unsubscription but not completion', async () => {
@@ -554,6 +564,140 @@ describe('createDisposables', () => {
         await done
         expect(disposable.dispose).toHaveBeenCalledTimes(1)
         expect(status()).toBe<ReturnType<typeof status>>('unsubscribed')
+    })
+
+    test('works with switchMap to unsubscribe before creating the next inner observable', async () => {
+        vi.useFakeTimers()
+
+        const record = vi.fn<(value: string) => void>()
+        const disposableA: VSCodeDisposable = { dispose: vi.fn(() => record('dispose(a)')) }
+        const disposableB: VSCodeDisposable = { dispose: vi.fn(() => record('dispose(b)')) }
+        const { done, unsubscribe } = readValuesFrom(
+            observableOfTimedSequence('a', 10, 'b').pipe(
+                switchMap(value =>
+                    Observable.of(value).pipe(
+                        createDisposables((value: string): VSCodeDisposable | undefined => {
+                            record(`create(${value})`)
+                            if (value === 'a') {
+                                return disposableA
+                            }
+                            if (value === 'b') {
+                                return disposableB
+                            }
+                            return undefined
+                        })
+                    )
+                )
+            )
+        )
+
+        await vi.runAllTimersAsync()
+        unsubscribe()
+        await done
+        expect(record.mock.calls).toEqual([['create(a)'], ['dispose(a)'], ['create(b)'], ['dispose(b)']])
+    })
+})
+
+describe('switchMap', () => {
+    test('switches to new inner observable when source emits', async () => {
+        vi.useFakeTimers()
+        const source = new Subject<string>()
+        const result = source.pipe(switchMap(c => observableOfTimedSequence(10, `${c}-1`, 10, `${c}-2`)))
+        const { values, done } = readValuesFrom(result)
+
+        source.next('a')
+        await vi.advanceTimersByTimeAsync(15)
+        expect(values).toEqual<typeof values>(['a-1'])
+        values.length = 0
+
+        source.next('b')
+        await vi.advanceTimersByTimeAsync(15)
+        expect(values).toEqual<typeof values>(['b-1'])
+        values.length = 0
+
+        await vi.advanceTimersByTimeAsync(10)
+        expect(values).toEqual<typeof values>(['b-2'])
+        values.length = 0
+
+        source.complete()
+        await done
+        expect(values).toEqual<typeof values>([])
+    })
+
+    test('unsubscribes from previous inner observable', async () => {
+        vi.useFakeTimers()
+        const innerSubject1 = new Subject<string>()
+        const innerSubject2 = new Subject<string>()
+        const source = new Subject<number>()
+        const result = source.pipe(switchMap(x => (x === 1 ? innerSubject1 : innerSubject2)))
+        const { values, done } = readValuesFrom(result)
+
+        source.next(1)
+        innerSubject1.next('a')
+        expect(values).toEqual(['a'])
+
+        source.next(2)
+        innerSubject1.next('b') // This should be ignored
+        innerSubject2.next('c')
+        expect(values).toEqual(['a', 'c'])
+
+        source.complete()
+        innerSubject2.complete()
+        await done
+        expect(values).toEqual(['a', 'c'])
+    })
+
+    test('handles errors from source observable', async () => {
+        vi.useFakeTimers()
+        const source = new Subject<number>()
+        const result = source.pipe(switchMap(x => observableOfSequence(x * 10)))
+        const { values, done } = readValuesFrom(result)
+
+        source.next(1)
+        await vi.advanceTimersByTimeAsync(10)
+        source.next(2)
+        await vi.advanceTimersByTimeAsync(10)
+        source.error(new Error('Source error'))
+
+        await expect(done).rejects.toThrow('Source error')
+        expect(values).toEqual([10, 20])
+    })
+
+    test('handles errors from inner observable', async () => {
+        vi.useFakeTimers()
+        const source = new Subject<number>()
+        const result = source.pipe(
+            switchMap(x => {
+                if (x === 2) {
+                    return new Observable(observer => observer.error(new Error('Inner error')))
+                }
+                return observableOfSequence(x * 10)
+            })
+        )
+        const { values, done } = readValuesFrom(result)
+        done.catch(() => {})
+
+        source.next(1)
+        await vi.advanceTimersByTimeAsync(10)
+        source.next(2)
+        await vi.advanceTimersByTimeAsync(10)
+
+        await expect(done).rejects.toThrow('Inner error')
+        expect(values).toEqual([10])
+    })
+
+    test('completes when source completes and last inner observable completes', async () => {
+        vi.useFakeTimers()
+        const source = new Subject<string>()
+        const result = source.pipe(switchMap(c => observableOfTimedSequence(10, `${c}-1`, 10, `${c}-2`)))
+        const { values, done } = readValuesFrom(result)
+
+        source.next('a')
+        await vi.advanceTimersByTimeAsync(20)
+        source.complete()
+
+        await done
+        expect(values).toEqual(['a-1', 'a-2'])
     })
 })
 

@@ -18,9 +18,9 @@ import {
     concat,
     distinctUntilChanged,
     firstValueFrom,
-    mergeMap,
     promiseFactoryToObservable,
     shareReplay,
+    switchMap,
 } from '../../misc/observable'
 import { addTraceparent, wrapInActiveSpan } from '../../tracing'
 import { isError } from '../../utils'
@@ -1633,7 +1633,7 @@ export class ClientConfigSingleton {
      * An observable that immediately emits the last-cached value and then emits all updated values.
      */
     public readonly changes: Observable<CodyClientConfig | null> = authStatus.pipe(
-        mergeMap(() =>
+        switchMap(() =>
             concat(
                 promiseFactoryToObservable(async signal => (await this.getConfig(signal)) ?? null).pipe(
                     shareReplay()

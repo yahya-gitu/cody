@@ -9,9 +9,9 @@ import {
     combineLatest,
     debounceTime,
     distinctUntilChanged,
-    mergeMap,
     promiseFactoryToObservable,
     startWith,
+    switchMap,
     tap,
 } from '../misc/observable'
 import { ANSWER_TOKENS } from '../prompt/constants'
@@ -53,7 +53,7 @@ export function syncModels(
 ): Observable<ModelsData | typeof PENDING> {
     // TODO(sqs)#observe: make ollama models observable
     const localModels = resolvedConfig.pipe(
-        mergeMap(({ configuration }) => {
+        switchMap(({ configuration }) => {
             const isCodyWeb = configuration.agentIDE === CodyIDE.Web
             return isCodyWeb
                 ? Observable.of([]) // disable Ollama local models for Cody Web
@@ -111,7 +111,7 @@ export function syncModels(
         authStatus,
     ]).pipe(
         debounceTime(0),
-        mergeMap(([config, authStatus]) => {
+        switchMap(([config, authStatus]) => {
             if (!authStatus.authenticated) {
                 // If you are not authenticated, you cannot use Cody remote models.
                 return Observable.of<RemoteModelsData>({
@@ -121,7 +121,7 @@ export function syncModels(
             }
 
             const serverModelsConfig: Observable<RemoteModelsData | typeof PENDING> = clientConfig.pipe(
-                mergeMap(clientConfig => {
+                switchMap(clientConfig => {
                     if (clientConfig?.modelsAPIEnabled) {
                         logDebug('ModelsService', 'new models API enabled')
                         return promiseFactoryToObservable(signal =>
@@ -174,7 +174,7 @@ export function syncModels(
                         return featureFlagProvider
                             .evaluatedFeatureFlag(FeatureFlag.CodyEarlyAccess)
                             .pipe(
-                                mergeMap(hasEarlyAccess => {
+                                switchMap(hasEarlyAccess => {
                                     const isOnWaitlist = config.clientState.waitlist_o1
                                     if (hasEarlyAccess || isOnWaitlist) {
                                         defaultModels = defaultModels.map(model => {

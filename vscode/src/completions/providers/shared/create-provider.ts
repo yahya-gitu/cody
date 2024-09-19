@@ -8,8 +8,8 @@ import {
     ModelUsage,
     type PickResolvedConfiguration,
     isDotComAuthed,
-    mergeMap,
     modelsService,
+    switchMap,
 } from '@sourcegraph/cody-shared'
 
 import { createProvider as createAnthropicProvider } from '../anthropic'
@@ -49,7 +49,7 @@ export function createProvider({
     }
 
     return getDotComExperimentModel({ authStatus }).pipe(
-        mergeMap(dotComExperiment => {
+        switchMap(dotComExperiment => {
             // Check if a user participates in autocomplete experiments.
             if (dotComExperiment) {
                 return Observable.of(

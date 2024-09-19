@@ -223,13 +223,19 @@ export class InlineCompletionItemProvider
             }"`
         )
 
+        logDebug('AutocompleteProvider:initialized', 'cody.autocomplete.inline.accepted')
         this.disposables.push(
             vscode.commands.registerCommand(
                 'cody.autocomplete.inline.accepted',
                 ({ codyCompletion }: AutocompleteInlineAcceptedCommandArgs) => {
                     void this.handleDidAcceptCompletionItem(codyCompletion)
                 }
-            )
+            ),
+            {
+                dispose: () => {
+                    logDebug('AutocompleteProvider:disposed', 'cody.autocomplete.inline.accepted')
+                },
+            }
         )
 
         this.disposables.push(

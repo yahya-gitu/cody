@@ -80,13 +80,11 @@ test
 
         // Manually invoking autocomplete should show an error
         await page.getByText('function foo() {').click()
-        // TODO(sqs): reenable. This was giving a VS Code OS alert dialog that the manual trigger command was not registered.
-        //
-        // await executeCommandInPalette(page, 'Cody: Trigger Autocomplete at Cursor')
-        // await expectNotificationToBeVisible(
-        //     page,
-        //     'Failed to generate autocomplete: file is ignored (due to cody.contextFilters Enterprise configuration setting)'
-        // )
+        await executeCommandInPalette(page, 'Cody: Trigger Autocomplete at Cursor')
+        await expectNotificationToBeVisible(
+            page,
+            'Failed to generate autocomplete: file is ignored (due to cody.contextFilters Enterprise configuration setting)'
+        )
 
         await clearAllNotifications(page)
 

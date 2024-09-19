@@ -4,8 +4,8 @@ import {
     type PickResolvedConfiguration,
     type UnauthenticatedAuthStatus,
     createDisposables,
-    mergeMap,
     promiseFactoryToObservable,
+    switchMap,
     vscodeResource,
 } from '@sourcegraph/cody-shared'
 import * as vscode from 'vscode'
@@ -45,6 +45,8 @@ class NoopCompletionItemProvider implements vscode.InlineCompletionItemProvider 
         return { items: [] }
     }
 }
+
+let acIndex = 0
 
 export function createInlineCompletionItemProvider({
     config: { configuration },
@@ -88,9 +90,12 @@ export function createInlineCompletionItemProvider({
         // TODO(sqs)#observe: make the list of vscode languages reactive
         return await getInlineCompletionItemProviderFilters(configuration.autocompleteLanguages)
     }).pipe(
-        mergeMap(documentFilters =>
+        switchMap(documentFilters =>
             createProvider({ config: { configuration }, authStatus }).pipe(
                 createDisposables(providerOrError => {
+                    const acIndexThis = acIndex++
+                    logDebug('AutocompleteProvider:' + acIndexThis, 'creating')
+
                     if (providerOrError instanceof Error) {
                         logDebug('AutocompleteProvider', providerOrError.message)
 
@@ -123,10 +128,19 @@ export function createInlineCompletionItemProvider({
                         createBfgRetriever,
                     })
 
+                    logDebug('AutocompleteProvider:' + acIndexThis, 'Registered completion provider')
                     return [
                         vscode.commands.registerCommand('cody.autocomplete.manual-trigger', () =>
                             completionsProvider.manuallyTriggerCompletion()
                         ),
+                        {
+                            dispose: () => {
+                                logDebug(
+                                    'AutocompleteProvider:' + acIndexThis,
+                                    'Disposed completion provider'
+                                )
+                            },
+                        },
                         vscode.languages.registerInlineCompletionItemProvider(
                             [{ notebookType: '*' }, ...documentFilters],
                             completionsProvider
