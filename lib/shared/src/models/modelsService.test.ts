@@ -162,7 +162,7 @@ describe('modelsService', () => {
         })
 
         it('allows setting default models per type', async () => {
-            vi.spyOn(modelsService, 'modelsChanges', 'get').mockReturnValue(
+            vi.spyOn(modelsService, 'modelsChangesWaitForPending', 'get').mockReturnValue(
                 Observable.of(EMPTY_MODELS_DATA)
             )
             await modelsService.setSelectedModel(ModelUsage.Chat, model2chat)
@@ -182,7 +182,7 @@ describe('modelsService', () => {
 
         it('only allows setting known models as default', async () => {
             // Set default before settings models is a no-op
-            vi.spyOn(modelsService, 'modelsChanges', 'get').mockReturnValue(
+            vi.spyOn(modelsService, 'modelsChangesWaitForPending', 'get').mockReturnValue(
                 Observable.of(EMPTY_MODELS_DATA)
             )
             await modelsService.setSelectedModel(ModelUsage.Chat, model2chat.id)
@@ -199,7 +199,7 @@ describe('modelsService', () => {
         })
 
         it('only allows setting appropriate model types', () => {
-            vi.spyOn(modelsService, 'modelsChanges', 'get').mockReturnValue(
+            vi.spyOn(modelsService, 'modelsChangesWaitForPending', 'get').mockReturnValue(
                 Observable.of({
                     ...EMPTY_MODELS_DATA,
                     primaryModels: [model1chat, model2chat, model3all, model4edit],

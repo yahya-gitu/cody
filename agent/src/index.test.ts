@@ -16,7 +16,6 @@ import {
 import * as uuid from 'uuid'
 import { ResponseError } from 'vscode-jsonrpc'
 import { URI } from 'vscode-uri'
-import { sleep } from '../../vscode/src/completions/utils'
 import { CodyJsonRpcErrorCode } from '../../vscode/src/jsonrpc/CodyJsonRpcErrorCode'
 import { TESTING_CREDENTIALS } from '../../vscode/src/testutils/testing-credentials'
 import { logTestingData } from '../../vscode/test/fixtures/mock-server'
@@ -134,7 +133,7 @@ describe('Agent', () => {
     async function setChatModel(
         model = 'fireworks/accounts/fireworks/models/mixtral-8x7b-instruct'
     ): Promise<string> {
-        await sleep(100)
+        await client.request('chat/models', { modelUsage: ModelUsage.Chat })
 
         // Use the same chat model regardless of the server response (in case it changes on the
         // remote endpoint so we don't need to regenerate all the recordings).

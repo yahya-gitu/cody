@@ -5,12 +5,12 @@ import type { Polly, Request } from '@pollyjs/core'
 import {
     type AccountKeyedChatHistory,
     type ChatHistoryKey,
+    ClientConfigSingleton,
     type CodyCommand,
     ModelUsage,
     currentAuthStatus,
     currentAuthStatusAuthed,
     firstValueFrom,
-    switchMap,
     telemetryRecorder,
     waitUntilComplete,
 } from '@sourcegraph/cody-shared'
@@ -57,6 +57,7 @@ import { formatURL } from '../../vscode/src/auth/auth'
 import { loadTscRetriever } from '../../vscode/src/completions/context/retrievers/tsc/load-tsc-retriever'
 import { supportedTscLanguages } from '../../vscode/src/completions/context/retrievers/tsc/supportedTscLanguages'
 import type { CompletionItemID } from '../../vscode/src/completions/logger'
+import { sleep } from '../../vscode/src/completions/utils'
 import { type ExecuteEditArguments, executeEdit } from '../../vscode/src/edit/execute'
 import type { QuickPickInput } from '../../vscode/src/edit/input/get-input'
 import { getModelOptionItems } from '../../vscode/src/edit/input/get-items/model'
@@ -1244,15 +1245,25 @@ export class Agent extends MessageHandler implements ExtensionClient {
 
         this.registerAuthenticatedRequest('chat/models', async ({ modelUsage }) => {
             // TODO!(sqs)
-            // const clientConfig = (await ClientConfigSingleton.getInstance().getConfig()) ?? null
-            // await syncModels(currentAuthStatus(), clientConfig)
+            // Ensure client config is up-to-date.
+            ;(await ClientConfigSingleton.getInstance().getConfig()) ?? null
+            // await sleep(100)
+            // await firstValueFrom(syncModels(resolvedConfig, authStatus, Observable.of(clientConfig)))
             // const models = modelsService.getModels(modelUsage)
             // TODO!(sqs): TODO: make this use a top-level method, or just call syncModels here
-            const models = await firstValueFrom(
-                modelsService
-                    .modelsChangesWaitForPending()
-                    .pipe(switchMap(() => modelsService.getModels(modelUsage)))
-            )
+            // await sleep(500)
+            console.log('AWAIT')
+            modelsService.getModels(modelUsage).subscribe(models => {
+                console.log('MM', models)
+            })
+            const models = await firstValueFrom(modelsService.getModels(modelUsage))
+            await sleep(500)
+            console.log('GOT', models)
+            // const models = await firstValueFrom(
+            //     modelsService.modelsChangesWaitForPending.pipe(
+            //         switchMap(() => modelsService.getModels(modelUsage))
+            //     )
+            // )
             return { models }
         })
 

@@ -7,7 +7,6 @@ import { fetchLocalOllamaModels } from '../llm-providers/ollama/utils'
 import { logDebug } from '../logger'
 import {
     combineLatest,
-    debounceTime,
     distinctUntilChanged,
     promiseFactoryToObservable,
     startWith,
@@ -110,7 +109,6 @@ export function syncModels(
         relevantConfig,
         authStatus,
     ]).pipe(
-        debounceTime(0),
         switchMap(([config, authStatus]) => {
             if (!authStatus.authenticated) {
                 // If you are not authenticated, you cannot use Cody remote models.
@@ -122,6 +120,7 @@ export function syncModels(
 
             const serverModelsConfig: Observable<RemoteModelsData | typeof PENDING> = clientConfig.pipe(
                 switchMap(clientConfig => {
+                    console.log('config', clientConfig)
                     if (clientConfig?.modelsAPIEnabled) {
                         logDebug('ModelsService', 'new models API enabled')
                         return promiseFactoryToObservable(signal =>

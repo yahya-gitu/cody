@@ -3,6 +3,7 @@ import { RE2JS as RE2 } from 're2js'
 import { type Mock, afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { URI } from 'vscode-uri'
 
+import { AUTH_STATUS_FIXTURE_AUTHED, AUTH_STATUS_FIXTURE_AUTHED_DOTCOM, mockAuthStatus } from '..'
 import { isDefined } from '../common'
 import { mockResolvedConfig } from '../configuration/resolver'
 import { DOTCOM_URL } from '../sourcegraph-api/environments'
@@ -45,6 +46,7 @@ describe('ContextFiltersProvider', () => {
         vi.spyOn(graphqlClient, 'fetchSourcegraphAPI').mockResolvedValue(
             apiResponseForFilters(contextFilters)
         )
+        mockAuthStatus(AUTH_STATUS_FIXTURE_AUTHED)
         await vi.runOnlyPendingTimersAsync()
     }
 
@@ -281,6 +283,10 @@ describe('ContextFiltersProvider', () => {
     })
 
     describe('isUriIgnored', () => {
+        beforeEach(() => {
+            mockAuthStatus(AUTH_STATUS_FIXTURE_AUTHED)
+        })
+
         interface TestUriParams {
             repoName: string
             filePath: string
@@ -383,6 +389,7 @@ describe('ContextFiltersProvider', () => {
                     configuration: {},
                     auth: { serverEndpoint: DOTCOM_URL.toString() },
                 })
+                mockAuthStatus(AUTH_STATUS_FIXTURE_AUTHED_DOTCOM)
                 provider = new ContextFiltersProvider()
                 ;(provider as any).isDotCom = true
                 await vi.runOnlyPendingTimersAsync()
