@@ -80,7 +80,7 @@ export async function showSignInMenu(
                 authStatus = await authProvider.auth({
                     endpoint: selectedEndpoint,
                     token: newToken || null,
-                    tokenSource: tokenSource ,
+                    tokenSource: tokenSource,
                 })
             }
             await showAuthResultMessage(selectedEndpoint, authStatus)

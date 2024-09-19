@@ -326,7 +326,7 @@ export const benchCommand = new commander.Command('bench')
             auth: {
                 accessToken: options.srcAccessToken,
                 serverEndpoint: options.srcEndpoint,
-                tokenSource: undefined
+                tokenSource: undefined,
             },
         })
 
