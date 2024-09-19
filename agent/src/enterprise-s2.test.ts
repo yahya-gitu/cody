@@ -1,7 +1,8 @@
 import path from 'node:path'
 
 import { spawnSync } from 'node:child_process'
-import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest'
+import { INCLUDE_EVERYTHING_CONTEXT_FILTERS } from '@sourcegraph/cody-shared'
+import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest'
 import { TESTING_CREDENTIALS } from '../../vscode/src/testutils/testing-credentials'
 import { TestClient } from './TestClient'
 import { TestWorkspace } from './TestWorkspace'
@@ -65,7 +66,13 @@ describe('Enterprise - S2 (close main branch)', () => {
 
     // Use S2 instance for Cody Context Filters enterprise tests
     describe('Cody Context Filters for enterprise', () => {
-        it('testing/ignore/overridePolicy', async () => {
+        afterEach(() => {
+            s2EnterpriseClient.unregisterNotification('ignore/didChange')
+        })
+
+        // NOTE(sqs): Run many times to find flakes better. This test has been often flaky but was
+        // fixed on 2024-09-19.
+        it.each(Array.from({ length: 25 }))('testing/ignore/overridePolicy', async () => {
             await s2EnterpriseClient.openFile(sumUri)
 
             const onChangeCallback = vi.fn()
@@ -74,6 +81,11 @@ describe('Enterprise - S2 (close main branch)', () => {
             const ignoreTest = () =>
                 s2EnterpriseClient.request('ignore/test', { uri: sumUri.toString() })
             s2EnterpriseClient.registerNotification('ignore/didChange', onChangeCallback)
+
+            await s2EnterpriseClient.request(
+                'testing/ignore/overridePolicy',
+                INCLUDE_EVERYTHING_CONTEXT_FILTERS
+            )
 
             expect(await ignoreTest()).toStrictEqual({ policy: 'use' })
             expect(onChangeCallback).toBeCalledTimes(1)
