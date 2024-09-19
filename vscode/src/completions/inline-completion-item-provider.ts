@@ -22,7 +22,7 @@ import { type CodyIgnoreType, showCodyIgnoreNotification } from '../cody-ignore/
 import { autocompleteStageCounterLogger } from '../services/autocomplete-stage-counter-logger'
 import { recordExposedExperimentsToSpan } from '../services/open-telemetry/utils'
 import { isInTutorial } from '../tutorial/helpers'
-import { getArtificialDelay, resetArtificialDelay } from './artificial-delay'
+import { getArtificialDelay } from './artificial-delay'
 import { completionProviderConfig } from './completion-provider-config'
 import { ContextMixer } from './context/context-mixer'
 import { DefaultContextStrategyFactory } from './context/context-strategy'
@@ -455,7 +455,6 @@ export class InlineCompletionItemProvider
             }
 
             const artificialDelay = getArtificialDelay({
-                uri: document.uri.toString(),
                 languageId: document.languageId,
                 codyAutocompleteDisableLowPerfLangDelay: this.disableLowPerfLangDelay,
                 completionIntent,

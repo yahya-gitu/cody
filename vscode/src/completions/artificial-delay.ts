@@ -31,12 +31,6 @@ export const lowPerformanceLanguageIds = new Set([
 
 const lowPerformanceCompletionIntents = new Set(['comment', 'import.source'])
 
-let userMetrics = {
-    sessionTimestamp: 0,
-    currentLatency: 0,
-    suggested: 0,
-    uri: '',
-}
 
 /**
  * Calculates the artificial delay to be added to code completion suggestions based on various factors.
@@ -48,12 +42,11 @@ let userMetrics = {
  *
  */
 export function getArtificialDelay(params: {
-    uri: string
     languageId: string
     codyAutocompleteDisableLowPerfLangDelay: boolean
     completionIntent?: CompletionIntent
 }): number {
-    const { uri, languageId, codyAutocompleteDisableLowPerfLangDelay, completionIntent } = params
+    const { languageId, codyAutocompleteDisableLowPerfLangDelay, completionIntent } = params
 
     let baseline = 0
 
@@ -68,23 +61,8 @@ export function getArtificialDelay(params: {
         }
     }
 
-    const timestamp = Date.now()
-    if (!userMetrics.sessionTimestamp) {
-        userMetrics.sessionTimestamp = timestamp
-    }
-
-    const elapsed = timestamp - userMetrics.sessionTimestamp
-    // reset metrics and timer after 5 minutes or file change
-    if (elapsed >= 5 * 60 * 1000 || userMetrics.uri !== uri) {
-        resetArtificialDelay(timestamp)
-    }
-
-    userMetrics.suggested++
-    userMetrics.uri = uri
-
     const total = Math.max(
-        baseline,
-        Math.min(baseline + userMetrics.currentLatency, defaultLatencies.max)
+        baseline, defaultLatencies.max
     )
 
     if (total > 0) {
@@ -92,17 +70,4 @@ export function getArtificialDelay(params: {
     }
 
     return total
-}
-
-// reset user latency and counter:
-// - on acceptance
-// - every 5 minutes
-// - on file change
-export function resetArtificialDelay(timestamp = 0): void {
-    userMetrics = {
-        sessionTimestamp: timestamp,
-        currentLatency: 0,
-        suggested: 0,
-        uri: '',
-    }
 }
