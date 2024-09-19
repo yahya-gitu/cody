@@ -15,13 +15,13 @@ import {
     telemetryRecorder,
 } from '@sourcegraph/cody-shared'
 import { Subject } from 'observable-fns'
-import { formatURL   } from '../auth/auth'
+import { formatURL } from '../auth/auth'
 import { newAuthStatus } from '../chat/utils'
 import { getConfiguration } from '../configuration'
 import { logDebug } from '../log'
 import { maybeStartInteractiveTutorial } from '../tutorial/helpers'
 import { localStorage } from './LocalStorageProvider'
-import { secretStorage, TokenSource  } from './SecretStorageProvider'
+import { type TokenSource, secretStorage } from './SecretStorageProvider'
 
 const HAS_AUTHENTICATED_BEFORE_KEY = 'has-authenticated-before'
 
@@ -40,7 +40,7 @@ class AuthProvider implements vscode.Disposable {
         const { auth } = await currentResolvedConfig()
         const lastEndpoint = localStorage?.getEndpoint() || auth.serverEndpoint
         const token = (await secretStorage.get(lastEndpoint || '')) || auth.accessToken
-        const tokenSource = (await secretStorage.getTokenSource(lastEndpoint  || '')) || auth.tokenSource
+        const tokenSource = (await secretStorage.getTokenSource(lastEndpoint || '')) || auth.tokenSource
         logDebug(
             'AuthProvider:init:lastEndpoint',
             token?.trim() ? 'Token recovered from secretStorage' : 'No token found in secretStorage',
@@ -50,7 +50,7 @@ class AuthProvider implements vscode.Disposable {
         await this.auth({
             endpoint: lastEndpoint,
             token: token || null,
-            tokenSource: tokenSource || null,
+            tokenSource: tokenSource(tokenSource) || null,
             isExtensionStartup: true,
         }).catch(error => logError('AuthProvider:init:failed', lastEndpoint, { verbose: error }))
     }
@@ -190,7 +190,11 @@ class AuthProvider implements vscode.Disposable {
             const authStatus = await this.makeAuthStatus(config, isOfflineMode)
 
             if (!isOfflineMode) {
-                await this.storeAuthInfo(config.auth.serverEndpoint, config.auth.accessToken, tokenSource)
+                await this.storeAuthInfo(
+                    config.auth.serverEndpoint,
+                    config.auth.accessToken,
+                    tokenSource
+                )
             }
 
             await vscode.commands.executeCommand(
@@ -263,8 +267,8 @@ class AuthProvider implements vscode.Disposable {
     // Store endpoint in local storage, token in secret storage, and update endpoint history.
     private async storeAuthInfo(
         endpoint: string | null | undefined,
-        token: string | null | undefined, 
-        tokenSource: string | null | undefined 
+        token: string | null | undefined,
+        tokenSource: string | null | undefined
     ): Promise<void> {
         if (!endpoint) {
             return

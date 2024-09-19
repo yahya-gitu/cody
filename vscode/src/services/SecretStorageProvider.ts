@@ -6,8 +6,7 @@ import { logDebug, logError } from '../log'
 const CODY_ACCESS_TOKEN_SECRET = 'cody.access-token'
 
 export const CODY_ACCESS_TOKEN_SOURCE = 'cody.access-token.source'
-export type TokenSource = 'redirect' | 'nonredirect';
-
+export type TokenSource = 'redirect' | 'nonredirect'
 
 export async function getAccessToken(): Promise<string | null> {
     try {
@@ -34,7 +33,7 @@ interface SecretStorage extends vscode.SecretStorage, ClientSecrets {
     // the Sourcegraph instance endpoint it is associated with.
     storeToken(endpoint: string, accessToken: string, tokenSource: TokenSource): Promise<void>
     getToken(endpoint: string): Promise<string | undefined>
-    getTokenSource(endpoint: string): Promise<string | undefined>
+    getTokenSource(endpoint: string): Promise<TokenSource | undefined>
     deleteToken(endpoint: string): Promise<void>
 }
 
@@ -105,17 +104,22 @@ export class VSCodeSecretStorage implements SecretStorage {
         return this.get(endpoint)
     }
 
-    public async getTokenSource(endpoint: string): Promise<string | undefined> {
-        return this.get(endpoint + CODY_ACCESS_TOKEN_SOURCE)
+    public async getTokenSource(endpoint: string): Promise<TokenSource | undefined> {
+        const tokenSource = await this.get(endpoint + CODY_ACCESS_TOKEN_SOURCE)
+        return tokenSource as TokenSource | undefined
     }
 
-    public async storeToken(endpoint: string, accessToken: string, tokenSource: TokenSource): Promise<void> {
+    public async storeToken(
+        endpoint: string,
+        accessToken: string,
+        tokenSource: TokenSource
+    ): Promise<void> {
         // remove prefix and store a second entry with this.store
         if (!accessToken || !endpoint || !tokenSource) {
             return
         }
         await this.store(endpoint, accessToken)
-        await this.store(endpoint+CODY_ACCESS_TOKEN_SOURCE, tokenSource)
+        await this.store(endpoint + CODY_ACCESS_TOKEN_SOURCE, tokenSource)
         await this.store(CODY_ACCESS_TOKEN_SECRET, accessToken)
     }
 
@@ -157,7 +161,7 @@ class InMemorySecretStorage implements SecretStorage {
         if (initialToken) {
             const parsedToken = JSON.parse(initialToken)
             if (Array.isArray(parsedToken) && parsedToken.length === 2) {
-                const tokenSource = "TEST"
+                const tokenSource = 'redirect'
                 this.storeToken(parsedToken[0], parsedToken[1], tokenSource)
             } else {
                 throw new Error('Initial token must be an array with [endpoint, value]')
@@ -187,11 +191,16 @@ class InMemorySecretStorage implements SecretStorage {
         return this.get(endpoint)
     }
 
-    public async getTokenSource(endpoint: string): Promise<string | undefined> {
-        return this.get(endpoint + CODY_ACCESS_TOKEN_SOURCE)
+    public async getTokenSource(endpoint: string): Promise<TokenSource | undefined> {
+        const tokenSource = await this.get(endpoint + CODY_ACCESS_TOKEN_SOURCE)
+        return tokenSource as TokenSource | undefined
     }
 
-    public async storeToken(endpoint: string, accessToken: string, tokenSource: TokenSource): Promise<void> {
+    public async storeToken(
+        endpoint: string,
+        accessToken: string,
+        tokenSource: TokenSource
+    ): Promise<void> {
         await this.store(endpoint, accessToken)
         await this.store(CODY_ACCESS_TOKEN_SECRET, accessToken)
         await this.store(endpoint + CODY_ACCESS_TOKEN_SOURCE, tokenSource)
