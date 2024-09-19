@@ -74,7 +74,7 @@ async function resolveConfiguration(input: ConfigurationInput): Promise<Resolved
     return {
         configuration: input.clientConfiguration,
         clientState: input.clientState,
-        auth: { accessToken, serverEndpoint, tokenSource: 'nonredirect' },
+        auth: { accessToken, serverEndpoint },
     }
 }
 

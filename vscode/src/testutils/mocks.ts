@@ -924,7 +924,7 @@ export function getVSCodeConfigurationWithAccessToken(
         auth: {
             serverEndpoint: 'https://sourcegraph.com',
             accessToken: 'test_access_token',
-            tokenSource: 'nonredirect',
+            tokenSource: undefined,
         },
         clientState: {} satisfies Partial<ClientState> as ClientState,
     }

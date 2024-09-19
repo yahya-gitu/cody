@@ -99,7 +99,6 @@ export class LocalSGInstance {
             auth: {
                 accessToken: this.params.accessToken,
                 serverEndpoint: this.params.serverEndpoint,
-                tokenSource: undefined,
             },
             clientState: { anonymousUserID: null },
         })
